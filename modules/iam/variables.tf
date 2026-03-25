@@ -1,9 +1,9 @@
 variable "project" {
-  description = "Nom du projet"
+  description = "Name of the project"
   type        = string
 }
 
 variable "environment" {
-  description = "Environnement"
+  description = "Environment"
   type        = string
 }
