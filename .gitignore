@@ -42,3 +42,6 @@ __pycache__/
 
 # Zip Lambda (générés par Terraform)
 *.zip
+
+# Remove my source draw.io file
+*.drawio
