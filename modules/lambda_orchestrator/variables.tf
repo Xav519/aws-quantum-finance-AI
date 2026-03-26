@@ -1,5 +1,4 @@
 
-/*
 variable "project"               { type = string }
 variable "environment"           { type = string }
 variable "lambda_role_arn"       { type = string }
@@ -12,4 +11,3 @@ variable "classical_threshold" {
   type        = number
   default     = 4
 }
-*/
