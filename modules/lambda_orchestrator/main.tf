@@ -14,7 +14,7 @@ data "archive_file" "lambda_zip" {
 
 resource "aws_lambda_function" "orchestrator" {
   function_name    = local.function_name
-  description      = "Routes optimization requests: classical (N<=10) or quantum (N>10)"
+  description      = "Routes optimization requests: classical (N<=4) or quantum (N>4)"
   role             = var.lambda_role_arn
   handler          = "handler.lambda_handler"
   runtime          = "python3.12"
