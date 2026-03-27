@@ -6,6 +6,7 @@ Values = Breach Impact Cost ($): Hourly Financial Loss × Hours to Mitigate
 import json
 import os
 import boto3
+from boto3.dynamodb.conditions import Key
 from datetime import datetime, timezone, timedelta
 
 # --- AWS Service Setup ---
@@ -16,7 +17,7 @@ dynamodb = boto3.resource("dynamodb")
 table    = dynamodb.Table(os.environ["DYNAMODB_TABLE"])
 
 # --- Environment Config ---
-MODEL_ID       = os.environ.get("BEDROCK_MODEL", "anthropic.claude-haiku-4-5-20251001")
+MODEL_ID       = os.environ["BEDROCK_MODEL"]
 DEVICE_ARN     = os.environ.get("BRAKET_DEVICE_ARN", "arn:aws:braket:::device/quantum-simulator/amazon/sv1")
 RESULTS_BUCKET = os.environ["RESULTS_BUCKET"]
 
@@ -194,12 +195,14 @@ def handle_complete(event: dict) -> dict:
     job_status = detail.get("status", "FAILED")
 
     # 1. Find the original job in DynamoDB using the Task ARN
-    scan_resp = table.scan(
-        FilterExpression="braket_task_arn = :arn AND #s = :pending",
+    query_resp = table.query(
+        IndexName="braket-task-arn-index",
+        KeyConditionExpression=Key("braket_task_arn").eq(task_arn),
+        FilterExpression="#s = :pending",
         ExpressionAttributeNames={"#s": "status"},
-        ExpressionAttributeValues={":arn": task_arn, ":pending": "PENDING"},
+        ExpressionAttributeValues={":pending": "PENDING"},
     )
-    items = scan_resp.get("Items", [])
+    items = query_resp.get("Items", [])
     if not items:
         return {"message": "No PENDING job found", "task_arn": task_arn}
 
