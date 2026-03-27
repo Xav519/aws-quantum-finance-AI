@@ -25,7 +25,7 @@ resource "aws_lambda_function" "classical" {
   environment {
     variables = {
       DYNAMODB_TABLE = var.dynamodb_table_name
-      BEDROCK_MODEL  = "anthropic.claude-haiku-4-5-20251001"
+      BEDROCK_MODEL  = "anthropic.claude-haiku-4-5-20251001-v1:0"
     }
   }
 
