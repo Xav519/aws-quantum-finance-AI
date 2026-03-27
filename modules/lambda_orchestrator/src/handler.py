@@ -90,26 +90,21 @@ def lambda_handler(event, context):
 
     else:
         # --- QUANTUM ROUTE ---
-        # Calls the Braket (Quantum) Lambda function
-        # Note: This usually returns a 'PENDING' status because Quantum jobs take longer
-        braket_resp   = lambda_client.invoke(
+        lambda_client.invoke(
             FunctionName=LAMBDA_BRAKET,
-            InvocationType="Event",          # fire-and-forget
+            InvocationType="Event",   # fire-and-forget — no payload comes back
             Payload=json.dumps(payload),
         )
-        submit_result = json.loads(braket_resp["Payload"].read())
 
-        if "errorMessage" in submit_result:
-            return api_response(500, {"error": submit_result["errorMessage"]})
-
-        # Return 202 Accepted (Processing)
+        # FIX: removed braket_resp["Payload"].read() — Event invocations
+        # return an empty payload, so json.loads() was crashing with JSONDecodeError.
         return api_response(202, {
-            "job_id":   job_id,
-            "status":   "PENDING",
-            "method":   "QUANTUM",
-            "qubits":   submit_result.get("qubits", n * n),
-            "shots":    submit_result.get("shots", 1000),
-            "message":  (
+            "job_id":  job_id,
+            "status":  "PENDING",
+            "method":  "QUANTUM",
+            "qubits":  n * n,
+            "shots":   1000,
+            "message": (
                 f"N={n} exceeds classical threshold ({CLASSICAL_THRESHOLD}). "
                 f"QAOA circuit ({n*n} qubits, 1000 shots) submitted to Amazon Braket SV1."
             ),
