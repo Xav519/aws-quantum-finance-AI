@@ -764,7 +764,7 @@
   <div class="explainer-block calculus">
     <strong class="label">The Calculus</strong> <span class="formula-stage"><span class="formula">Total Liability = Hourly Loss × Time to Mitigate</span></span>
     <br>
-    We map specialist proficiency against specific threats. By choosing the analyst who resolves a leak in <strong class="kw">2 hours rather than 9</strong>, the model prevents <strong class="kw">hundreds of thousands of dollars</strong> in unnecessary breach costs.
+    We map specialist proficiency against specific threats. By choosing the analyst who resolves a leak in <strong class="kw">2 hours rather than 3</strong>, the model prevents <strong class="kw">hundreds of thousands of dollars</strong> in unnecessary breach costs.
   </div>
   <div class="explainer-block goal">
     <strong class="label">The Goal</strong>
