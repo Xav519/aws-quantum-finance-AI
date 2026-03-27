@@ -579,13 +579,13 @@ function updateModeBadge(n) {
     label.textContent = "Classical Brute-Force";
     btn.className     = "classical";
     info.className    = "info-bar";
-    info.innerHTML    = `N = ${n} &nbsp;·&nbsp; Evaluates <span>${fact}</span> combinations &nbsp;·&nbsp; Exact global optimum &nbsp;·&nbsp; Synchronous result`;
+    info.innerHTML    = `N = $${n} &nbsp;·&nbsp; Evaluates <span>$${fact}</span> combinations &nbsp;·&nbsp; Exact global optimum &nbsp;·&nbsp; Synchronous result`;
   } else {
     badge.className   = "mode-badge quantum";
     label.textContent = "⚛ Quantum QAOA";
     btn.className     = "quantum";
     info.className    = "info-bar quantum-mode";
-    info.innerHTML    = `N = ${n} &nbsp;·&nbsp; <span>${fact}</span> combinations &nbsp;·&nbsp; QAOA on Amazon Braket SV1 &nbsp;·&nbsp; <span>${n*n} qubits</span> · 1,000 shots &nbsp;·&nbsp; Async result`;
+    info.innerHTML    = `N = $${n} &nbsp;·&nbsp; <span>$${fact}</span> combinations &nbsp;·&nbsp; QAOA on Amazon Braket SV1 &nbsp;·&nbsp; <span>$${n*n} qubits</span> · 1,000 shots &nbsp;·&nbsp; Async result`;
   }
 }
 
@@ -595,11 +595,11 @@ function updateChips(n) {
 
   document.getElementById("analyst-chips").innerHTML =
     '<span style="font-size:0.75rem;color:var(--muted);margin-right:4px">Analysts:</span>' +
-    analysts.map(a => `<span class="label-chip analyst">${a}</span>`).join("");
+    analysts.map(a => `<span class="label-chip analyst">$${a}</span>`).join("");
 
   document.getElementById("alert-chips").innerHTML =
     '<span style="font-size:0.75rem;color:var(--muted);margin-right:4px">Threats:</span>' +
-    alerts.map(a => `<span class="label-chip alert">⚠ ${a}</span>`).join("");
+    alerts.map(a => `<span class="label-chip alert">⚠ $${a}</span>`).join("");
 }
 
 // ── Build table ───────────────────────────────────────────────────────────────
@@ -611,18 +611,18 @@ function buildTable(n) {
 
   let html = "<tr><th></th>";
   alerts.forEach(a => {
-    html += `<th class="col-header" title="${a}">⚠ ${a}</th>`;
+    html += `<th class="col-header" title="$${a}">⚠ $${a}</th>`;
   });
   html += "</tr>";
 
   analysts.forEach((analyst, i) => {
-    html += `<tr><td class="row-header">${analyst}</td>`;
+    html += `<tr><td class="row-header">$${analyst}</td>`;
     alerts.forEach((_, j) => {
       html += `<td><input
         type="text"
-        id="c${i}_${j}"
+        id="c$${i}_$${j}"
         placeholder="—"
-        oninput="onCellInput(this, ${i}, ${j})"
+        oninput="onCellInput(this, $${i}, $${j})"
         onkeypress="return allowCostKey(event)"
         autocomplete="off"
       /></td>`;
@@ -652,7 +652,7 @@ function generateValues() {
   const n = getN();
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      const el = document.getElementById(`c${i}_${j}`);
+      const el = document.getElementById(`c$${i}_$${j}`);
       if (!el.value || el.value === "") {
         el.value = randCost();
       }
@@ -666,7 +666,7 @@ function clearTable() {
   const n = getN();
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      document.getElementById(`c${i}_${j}`).value = "";
+      document.getElementById(`c$${i}_$${j}`).value = "";
     }
   }
   updateLiveTotal();
@@ -681,15 +681,15 @@ function updateLiveTotal() {
   let   all = true;
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      const v = parseInt(document.getElementById(`c${i}_${j}`).value);
+      const v = parseInt(document.getElementById(`c$${i}_$${j}`).value);
       if (!isNaN(v)) sum += v;
       else all = false;
     }
   }
   const el = document.getElementById("live-total");
   el.textContent = all
-    ? `Matrix sum: ${formatUSD(sum)}`
-    : sum > 0 ? `Partial sum: ${formatUSD(sum)}` : "";
+    ? `Matrix sum: $${formatUSD(sum)}`
+    : sum > 0 ? `Partial sum: $${formatUSD(sum)}` : "";
 }
 
 // ── Read matrix ───────────────────────────────────────────────────────────────
@@ -701,7 +701,7 @@ function readMatrix() {
   for (let i = 0; i < n; i++) {
     const row = [];
     for (let j = 0; j < n; j++) {
-      const v = parseInt(document.getElementById(`c${i}_${j}`).value);
+      const v = parseInt(document.getElementById(`c$${i}_$${j}`).value);
       if (isNaN(v) || v < 0) return null; // Fails if any cell is empty
       row.push(v);
     }
@@ -729,7 +729,7 @@ async function submitJob() {
   resetResult();
 
   try {
-    const resp = await fetch(`${API_URL}/optimize`, {
+    const resp = await fetch(`$${API_URL}/optimize`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify(payload),
@@ -753,7 +753,7 @@ async function submitJob() {
     }
   } catch (e) {
     setSubmitting(false);
-    showError(`Network error: ${e.message}`);
+    showError(`Network error: $${e.message}`);
   }
 }
 
@@ -767,7 +767,7 @@ function startPolling(jobId, n) {
   pollInterval = setInterval(async () => {
     try {
       // Call the API GET endpoint to check job status
-      const resp = await fetch(`${API_URL}/jobs/${jobId}`);
+      const resp = await fetch(`$${API_URL}/jobs/$${jobId}`);
       const data = await resp.json();
 
       // If the job is done running on Braket and Claude generated the summary...
@@ -782,7 +782,7 @@ function startPolling(jobId, n) {
         clearInterval(pollInterval);
         hideQuantumStatus();
         setSubmitting(false);
-        showError(`Quantum job failed: ${data.status}`);
+        showError(`Quantum job failed: $${data.status}`);
       }
       // If it's still "PENDING", do nothing. The interval will just run again in 4 seconds.
     } catch (_) { /* keep polling on transient errors */ }
@@ -794,7 +794,7 @@ function showQuantumStatus(jobId, n, qubits, shots) {
   const qs = document.getElementById("quantum-status");
   qs.className = "show";
   document.getElementById("qs-info").textContent =
-    `Job: ${jobId} · ${qubits} qubits · ${shots} shots · Device: Amazon Braket SV1`;
+    `Job: $${jobId} · $${qubits} qubits · $${shots} shots · Device: Amazon Braket SV1`;
 }
 
 function hideQuantumStatus() {
@@ -815,9 +815,9 @@ function showResult(data, n) {
 
   // Loops through the assigned pairs and creates HTML cards for each
   const pairsHtml = pairs.map(p => `
-    <div class="pair-card ${cls}">
-      <div class="pair-names">${p.analyst} → ⚠ ${p.alert || p.file}</div>
-      <div class="pair-cost">${formatUSD(p.cost)} breach impact</div>
+    <div class="pair-card $${cls}">
+      <div class="pair-names">$${p.analyst} → ⚠ $${p.alert || p.file}</div>
+      <div class="pair-cost">$${formatUSD(p.cost)} breach impact</div>
     </div>
   `).join("");
 
@@ -825,11 +825,11 @@ function showResult(data, n) {
   document.getElementById("result-panel").className = "show";
   document.getElementById("result-panel").innerHTML = `
     <div class="result-header">
-      <h2>${methodLabel}</h2>
+      <h2>$${methodLabel}</h2>
     </div>
-    <div class="result-cost">Total Financial Exposure: ${formatUSD(total)}</div>
-    <div class="result-grid">${pairsHtml}</div>
-    <div class="narrative">${data.narrative || ""}</div>
+    <div class="result-cost">Total Financial Exposure: $${formatUSD(total)}</div>
+    <div class="result-grid">$${pairsHtml}</div>
+    <div class="narrative">$${data.narrative || ""}</div>
   `;
 }
 
@@ -837,7 +837,7 @@ function showResult(data, n) {
 function showError(msg) {
   const panel = document.getElementById("result-panel");
   panel.className = "show";
-  panel.innerHTML = `<div class="error-box">⚠ ${msg}</div>`;
+  panel.innerHTML = `<div class="error-box">⚠ $${msg}</div>`;
 }
 
 // Toggles buttons on and off so the user can't spam the API
