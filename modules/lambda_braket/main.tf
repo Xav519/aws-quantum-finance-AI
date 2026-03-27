@@ -26,7 +26,7 @@ resource "aws_lambda_function" "braket" {
     variables = {
       DYNAMODB_TABLE    = var.dynamodb_table_name
       RESULTS_BUCKET    = var.results_bucket_name
-      BEDROCK_MODEL     = "us.anthropic.claude-3-haiku-20240307-v1:0"
+      BEDROCK_MODEL     = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
       BRAKET_DEVICE_ARN = "arn:aws:braket:::device/quantum-simulator/amazon/sv1"
     }
   }

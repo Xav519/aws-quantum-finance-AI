@@ -30,7 +30,7 @@ resource "aws_lambda_function" "orchestrator" {
     LAMBDA_BRAKET       = var.lambda_braket_name
     CLASSICAL_THRESHOLD = tostring(var.classical_threshold)
     DYNAMODB_TABLE      = var.dynamodb_table_name
-    BEDROCK_MODEL       = "us.anthropic.claude-3-haiku-20240307-v1:0"
+    BEDROCK_MODEL       = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
   }
 }
 
