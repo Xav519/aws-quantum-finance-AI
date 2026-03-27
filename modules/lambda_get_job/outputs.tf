@@ -1,7 +1,9 @@
 output "function_arn" {
-  value = aws_lambda_function.get_job.arn
+  description = "Lambda function ARN"
+  value       = aws_lambda_function.get_job.arn
 }
 
 output "function_name" {
-  value = aws_lambda_function.get_job.function_name
+  description = "Lambda function name"
+  value       = aws_lambda_function.get_job.name
 }
