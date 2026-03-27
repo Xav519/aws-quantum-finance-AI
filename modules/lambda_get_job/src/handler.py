@@ -56,14 +56,14 @@ def lambda_handler(event, context):
     if status == "COMPLETE":
         assignment_raw = item.get("assignment", [])
         analysts       = item.get("analysts", [])
-        files          = item.get("files", [])
+        alerts          = item.get("alerts", [])
         total_cost     = item.get("total_cost", "0")
 
         # Reconstruct pairs if stored as index list
         if assignment_raw and isinstance(assignment_raw[0], (int, float, Decimal)):
             assignment_indices = [int(a) for a in assignment_raw]
             pairs = [
-                {"analyst": analysts[i], "file": files[assignment_indices[i]]}
+                {"analyst": analysts[i], "alert": alerts[assignment_indices[i]]}
                 for i in range(len(analysts))
             ]
         else:
