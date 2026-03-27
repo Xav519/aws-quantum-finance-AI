@@ -18,21 +18,21 @@ provider "aws" {
 
 # ── 1. IAM ────────────────────────────────────────────────────────────────────
 module "iam" {
-  source      = "./modules/iam"
+  source      = "../modules/iam"
   project     = var.project
   environment = var.environment
 }
 
 # ── 2. Storage ────────────────────────────────────────────────────────────────
 module "storage" {
-  source      = "./modules/storage"
+  source      = "../modules/storage"
   project     = var.project
   environment = var.environment
 }
 
 # ── 3. Lambda Classical ───────────────────────────────────────────────────────
 module "lambda_classical" {
-  source              = "./modules/lambda_classical"
+  source              = "../modules/lambda_classical"
   project             = var.project
   environment         = var.environment
   lambda_role_arn     = module.iam.lambda_role_arn
@@ -41,7 +41,7 @@ module "lambda_classical" {
 
 # ── 4. Lambda Braket ──────────────────────────────────────────────────────────
 module "lambda_braket" {
-  source                 = "./modules/lambda_braket"
+  source                 = "../modules/lambda_braket"
   project                = var.project
   environment            = var.environment
   lambda_braket_role_arn = module.iam.lambda_braket_role_arn
@@ -51,7 +51,7 @@ module "lambda_braket" {
 
 # ── 5. Lambda Get Job ─────────────────────────────────────────────────────────
 module "lambda_get_job" {
-  source              = "./modules/lambda_get_job"
+  source              = "../modules/lambda_get_job"
   project             = var.project
   environment         = var.environment
   lambda_role_arn     = module.iam.lambda_role_arn
@@ -60,7 +60,7 @@ module "lambda_get_job" {
 
 # ── 6. Lambda Orchestrator ────────────────────────────────────────────────────
 module "lambda_orchestrator" {
-  source                = "./modules/lambda_orchestrator"
+  source                = "../modules/lambda_orchestrator"
   project               = var.project
   environment           = var.environment
   lambda_role_arn       = module.iam.lambda_role_arn
@@ -71,7 +71,7 @@ module "lambda_orchestrator" {
 
 # ── 7. Messaging (EventBridge) — depends on Lambda Braket ─────────────────────
 module "messaging" {
-  source             = "./modules/messaging"
+  source             = "../modules/messaging"
   project            = var.project
   environment        = var.environment
   lambda_braket_arn  = module.lambda_braket.function_arn
@@ -80,7 +80,7 @@ module "messaging" {
 
 # ── 8. API Gateway ────────────────────────────────────────────────────────────
 module "api_gateway" {
-  source                   = "./modules/api_gateway"
+  source                   = "../modules/api_gateway"
   project                  = var.project
   environment              = var.environment
   lambda_orchestrator_arn  = module.lambda_orchestrator.function_arn
@@ -91,7 +91,7 @@ module "api_gateway" {
 
 # ── 9. Observability ──────────────────────────────────────────────────────────
 module "observability" {
-  source                   = "./modules/observability"
+  source                   = "../modules/observability"
   project                  = var.project
   environment              = var.environment
   alert_email              = var.alert_email
@@ -103,7 +103,7 @@ module "observability" {
 
 # ── 10. Demo Frontend ─────────────────────────────────────────────────────────
 module "demo_frontend" {
-  source      = "./modules/demo_frontend"
+  source      = "../modules/demo_frontend"
   project     = var.project
   environment = var.environment
   api_url     = module.api_gateway.api_url
