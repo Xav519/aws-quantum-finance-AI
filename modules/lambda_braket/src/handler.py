@@ -303,7 +303,7 @@ Optimal assignments:
 
 Write exactly 3 sentences in a confident, board-level executive tone:
 1. Describe the hybrid quantum-classical approach: QAOA on Amazon Braket SV1 explored the solution space, and classical verification confirmed the global optimum — explain why this matters for a financial institution managing simultaneous cyber threats.
-2. State the business result: the verified optimal assignment reduces total breach impact exposure to ${total_cost:,.0f}, and briefly highlight the most impactful pairing from the assignment above.
+2. State the business result: the verified optimal assignment reduces total breach impact exposure to ${total_cost:,.0f}
 3. State the strategic position: this infrastructure is quantum-ready today — one configuration change routes to real quantum hardware, giving the bank a measurable head start over competitors who will need to rebuild from scratch when quantum advantage becomes operational.
 
 Rules: no bullet points, no headers, no markdown, no technical jargon. Format all dollar amounts with commas. Confident and decisive tone — this is a board presentation, not a technical report.
