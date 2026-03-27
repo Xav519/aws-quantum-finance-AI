@@ -2,7 +2,8 @@
 Lambda Braket - QAOA SOC assignment optimizer
 Values = Breach Impact Cost ($): Hourly Financial Loss x Hours to Mitigate
 
-Circuit format: Braket JAQCD (JSON IR) — avoids all OpenQASM dialect issues with SV1.
+Circuit format: Braket JAQCD (JSON IR) with correct per-gate schema field names.
+Each gate type has its own required JSON shape per braket.ir.jaqcd.instructions.
 """
 
 import json
@@ -39,19 +40,41 @@ def call_bedrock(prompt: str, max_tokens: int = 400) -> str:
     return json.loads(resp["body"].read())["content"][0]["text"]
 
 
+def h(target: int) -> dict:
+    """Hadamard gate — JAQCD schema: {type, target}"""
+    return {"type": "h", "target": target}
+
+def rz(target: int, angle: float) -> dict:
+    """Rz gate — JAQCD schema: {type, target, angle}"""
+    return {"type": "rz", "target": target, "angle": round(angle, 6)}
+
+def rx(target: int, angle: float) -> dict:
+    """Rx gate — JAQCD schema: {type, target, angle}"""
+    return {"type": "rx", "target": target, "angle": round(angle, 6)}
+
+def cnot(control: int, target: int) -> dict:
+    """CNot gate — JAQCD schema: {type, control, target}"""
+    return {"type": "cnot", "control": control, "target": target}
+
+
 def build_qaoa_circuit_jaqcd(cost_matrix: list, p_layers: int = 1) -> dict:
     """
     Builds the QAOA circuit in Braket JAQCD (JSON IR) format.
 
-    JAQCD is Braket SV1's native format and avoids all OpenQASM dialect
-    issues (no include statements, no gate declaration problems, no syntax
-    differences between OpenQASM 2.0 and 3.0).
+    JAQCD is Braket SV1's native wire format. Each gate is a JSON object
+    with a "type" field (lowercase gate name) plus gate-specific fields:
+      h    : {type, target}
+      rz   : {type, target, angle}
+      rx   : {type, target, angle}
+      cnot : {type, control, target}
 
-    Gates:
-      h    - Hadamard: superposition over all possible assignments
-      rz   - Z-rotation: encodes breach impact cost as a quantum phase
-      cnot - Controlled-NOT: enforces one-to-one assignment constraints
-      rx   - X-rotation: mixer layer, lets state escape local minima
+    The quantum logic:
+      1. Hadamard  — superposition over all possible analyst-alert assignments
+      2. Cost Rz   — phase proportional to normalised breach impact cost
+      3. Row CNOTs — penalise one analyst covering two alerts
+      4. Col CNOTs — penalise two analysts covering one alert
+      5. Mixer Rx  — allows the state to explore and escape local minima
+      6. Measurement result type on all qubits
     """
     n            = len(cost_matrix)
     num_qubits   = n * n
@@ -59,46 +82,46 @@ def build_qaoa_circuit_jaqcd(cost_matrix: list, p_layers: int = 1) -> dict:
     beta         = 0.3
     instructions = []
 
-    # 1. INITIALIZATION: superposition
+    # 1. Superposition
     for k in range(num_qubits):
-        instructions.append({"gate": "h", "target": k})
+        instructions.append(h(k))
 
     for _ in range(p_layers):
 
-        # 2. COST LAYER: phase proportional to normalised breach impact cost
+        # 2. Cost layer
         flat     = [cost_matrix[i][j] for i in range(n) for j in range(n)]
         max_cost = max(flat) or 1
         for i in range(n):
             for j in range(n):
-                k          = i * n + j
-                normalized = cost_matrix[i][j] / max_cost
-                angle      = 2.0 * gamma * normalized
-                instructions.append({"gate": "rz", "target": k, "angle": round(angle, 6)})
+                k         = i * n + j
+                angle     = 2.0 * gamma * (cost_matrix[i][j] / max_cost)
+                instructions.append(rz(k, angle))
 
-        # 3. ROW CONSTRAINTS: one analyst cannot cover two alerts
+        # 3. Row constraints: one analyst, one alert
         for i in range(n):
             for j1 in range(n):
                 for j2 in range(j1 + 1, n):
                     k1 = i * n + j1
                     k2 = i * n + j2
-                    instructions.append({"gate": "cnot", "control": k1, "target": k2})
-                    instructions.append({"gate": "rz",   "target": k2, "angle": round(2.0 * gamma, 6)})
-                    instructions.append({"gate": "cnot", "control": k1, "target": k2})
+                    instructions.append(cnot(k1, k2))
+                    instructions.append(rz(k2, 2.0 * gamma))
+                    instructions.append(cnot(k1, k2))
 
-        # 4. COLUMN CONSTRAINTS: one alert cannot be covered by two analysts
+        # 4. Column constraints: one alert, one analyst
         for j in range(n):
             for i1 in range(n):
                 for i2 in range(i1 + 1, n):
                     k1 = i1 * n + j
                     k2 = i2 * n + j
-                    instructions.append({"gate": "cnot", "control": k1, "target": k2})
-                    instructions.append({"gate": "rz",   "target": k2, "angle": round(2.0 * gamma, 6)})
-                    instructions.append({"gate": "cnot", "control": k1, "target": k2})
+                    instructions.append(cnot(k1, k2))
+                    instructions.append(rz(k2, 2.0 * gamma))
+                    instructions.append(cnot(k1, k2))
 
-        # 5. MIXER LAYER
+        # 5. Mixer layer
         for k in range(num_qubits):
-            instructions.append({"gate": "rx", "target": k, "angle": round(2.0 * beta, 6)})
+            instructions.append(rx(k, 2.0 * beta))
 
+    # 6. Measurement result — JAQCD results schema
     results = [{"type": "measurement", "targets": list(range(num_qubits))}]
 
     return {
