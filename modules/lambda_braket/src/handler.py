@@ -161,9 +161,29 @@ def handle_submit(event: dict) -> dict:
 
     circuit = build_qaoa_circuit_jaqcd(cost_matrix, p_layers=1)
 
+    num_qubits = n * n
+
+    # deviceParameters with paradigmParameters is required by Braket for all
+    # gate-model devices — without it the API returns "paradigmParameters is missing"
+    device_params = {
+        "braketSchemaHeader": {
+            "name":    "braket.device_schema.simulators.gate_model_simulator_device_parameters",
+            "version": "1"
+        },
+        "paradigmParameters": {
+            "braketSchemaHeader": {
+                "name":    "braket.device_schema.gate_model_parameters",
+                "version": "1"
+            },
+            "qubitCount":           num_qubits,
+            "disableQubitRewiring": False
+        }
+    }
+
     response = braket.create_quantum_task(
         action=json.dumps(circuit),
         deviceArn=DEVICE_ARN,
+        deviceParameters=json.dumps(device_params),
         outputS3Bucket=RESULTS_BUCKET,
         outputS3KeyPrefix=f"braket-results/{job_id}",
         shots=1000,
