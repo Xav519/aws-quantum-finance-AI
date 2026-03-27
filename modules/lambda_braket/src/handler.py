@@ -121,8 +121,7 @@ def build_qaoa_circuit_jaqcd(cost_matrix: list, p_layers: int = 1) -> dict:
         for k in range(num_qubits):
             instructions.append(rx(k, 2.0 * beta))
 
-    # 6. Measurement result — JAQCD results schema
-    results = [{"type": "measurement", "targets": list(range(num_qubits))}]
+
 
     return {
         "braketSchemaHeader": {
@@ -130,7 +129,7 @@ def build_qaoa_circuit_jaqcd(cost_matrix: list, p_layers: int = 1) -> dict:
             "version": "1"
         },
         "instructions":                instructions,
-        "results":                     results,
+        "results":                     [],  # JAQCD measurement is implicit — results field is for additional types only
         "basis_rotation_instructions": []
     }
 
