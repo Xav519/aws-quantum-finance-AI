@@ -94,7 +94,7 @@ def lambda_handler(event, context):
         # Note: This usually returns a 'PENDING' status because Quantum jobs take longer
         braket_resp   = lambda_client.invoke(
             FunctionName=LAMBDA_BRAKET,
-            InvocationType="RequestResponse",
+            InvocationType="Event",          # fire-and-forget
             Payload=json.dumps(payload),
         )
         submit_result = json.loads(braket_resp["Payload"].read())
