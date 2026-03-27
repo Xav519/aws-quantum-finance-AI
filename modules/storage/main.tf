@@ -1,18 +1,17 @@
 locals {
   prefix = "${var.project}-${var.environment}"
 
-  # FIX: truncate prefix to 40 chars so "${prefix}-braket-results" stays
-  # within S3's 63-character bucket name limit.
-  # "braket-results" is 14 chars + 1 hyphen = 15, leaving 48 chars for the prefix.
-  # We use 40 to be safe with any project/environment combination.
-  prefix_safe = substr(local.prefix, 0, 40)
+  # Amazon Braket requires the output bucket name to start with "amazon-braket-".
+  # This is a hard AWS requirement enforced at CreateQuantumTask time.
+  # "amazon-braket-" = 14 chars, leaving 49 chars — we use 40 to be safe.
+  braket_bucket_name = "amazon-braket-${substr(local.prefix, 0, 40)}"
 }
 
 # - S3 Bucket: Raw Braket Results -
-# This is where the output files from quantum computing tasks will live.
+# Must start with "amazon-braket-" — enforced by the Braket service.
 resource "aws_s3_bucket" "braket_results" {
-  # FIX: use prefix_safe instead of prefix to avoid exceeding the 63-char limit.
-  bucket = "${local.prefix_safe}-braket-results"
+  bucket        = local.braket_bucket_name
+  force_destroy = true  # Braket writes objects Terraform doesn't track
 }
 
 # Enables Versioning: Allows you to recover previous versions of an object.

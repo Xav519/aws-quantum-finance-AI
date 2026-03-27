@@ -100,7 +100,10 @@ resource "aws_iam_role_policy" "lambda_braket_policy" {
       {
         Effect   = "Allow"
         Action   = ["s3:PutObject", "s3:GetObject"]
-        Resource = "arn:aws:s3:::${local.prefix}-*/*"
+        Resource = [
+          "arn:aws:s3:::amazon-braket-${local.prefix}/*",
+          "arn:aws:s3:::amazon-braket-*/*"
+        ]
       },
       # FIX: braket role was missing Bedrock permission entirely — added here
       {
