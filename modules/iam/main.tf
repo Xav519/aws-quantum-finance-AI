@@ -97,6 +97,12 @@ resource "aws_iam_role_policy" "lambda_braket_policy" {
         Action   = ["braket:CreateQuantumTask", "braket:GetQuantumTask", "braket:CancelQuantumTask", "braket:SearchQuantumTasks"]
         Resource = "*"
       },
+      # AI/ML: Specifically allows calling the Claude 4.5 Haiku model via Bedrock.
+      {
+        Effect   = "Allow"
+        Action   = ["bedrock:InvokeModel"]
+        Resource = "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
+      },
     # Storage: Read/Write access to S3 buckets for quantum result data.
       {
         Effect   = "Allow"
