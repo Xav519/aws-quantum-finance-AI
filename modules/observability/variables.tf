@@ -1,27 +1,39 @@
 variable "project" {
-  type = string
+  description = "Project name prefix"
+  type        = string
 }
 
 variable "environment" {
-  type = string
+  description = "Deployment environment (e.g. dev, prod)"
+  type        = string
+}
+
+variable "aws_region" {
+  description = "AWS region — passed through to CloudWatch dashboard widget properties"
+  type        = string
 }
 
 variable "alert_email" {
-  type = string
+  description = "Email address for SNS alarm notifications"
+  type        = string
 }
 
 variable "lambda_orchestrator_name" {
-  type = string
+  description = "Name of the orchestrator Lambda function"
+  type        = string
 }
 
 variable "lambda_classical_name" {
-  type = string
+  description = "Name of the classical Lambda function"
+  type        = string
 }
 
 variable "lambda_braket_name" {
-  type = string
+  description = "Name of the Braket Lambda function"
+  type        = string
 }
 
 variable "lambda_get_job_name" {
-  type = string
+  description = "Name of the get-job Lambda function"
+  type        = string
 }
