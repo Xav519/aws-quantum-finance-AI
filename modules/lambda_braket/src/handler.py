@@ -43,19 +43,28 @@ def build_qaoa_circuit_openqasm(cost_matrix: list, p_layers: int = 1) -> str:
     The Core Quantum Logic:
     Translates the 'Assignment Problem' into a series of quantum gates.
     Each analyst/alert pair is represented by one 'qubit'.
+
+    FIX: switched from OpenQASM 3.0 to OpenQASM 2.0 format.
+    Braket SV1 uses an OpenQASM 2.0 dialect — it does not support:
+      - 'include "stdgates.inc"' (include statements not supported)
+      - 'qubit[N] q' register syntax  (must use 'qreg q[N]')
+      - 'bit[N] c' register syntax    (must use 'creg c[N]')
+      - 'c = measure q' bulk measure  (must use per-qubit 'measure q[k] -> c[k]')
+    Gates h, rz, rx, cx are built-in to Braket's OpenQASM 2.0 — no include needed.
     """
     n          = len(cost_matrix)
     num_qubits = n * n
-    gamma      = 0.4 # Hyperparameter for 'Cost' layer
-    beta       = 0.3 # Hyperparameter for 'Mixing' layer
+    gamma      = 0.4  # Hyperparameter for 'Cost' layer
+    beta       = 0.3  # Hyperparameter for 'Mixing' layer
     lines      = []
 
-    lines.append("OPENQASM 3.0;")
-    lines.append('include "stdgates.inc";')
-    lines.append(f"qubit[{num_qubits}] q;")
-    lines.append(f"bit[{num_qubits}] c;")
+    # OpenQASM 2.0 header — no include needed, gates are built-in on Braket
+    lines.append("OPENQASM 2.0;")
+    lines.append(f"qreg q[{num_qubits}];")
+    lines.append(f"creg c[{num_qubits}];")
     lines.append("")
-    # 1. INITIALIZATION: Put all qubits into 'Superposition' (checking all answers at once)
+
+    # 1. INITIALIZATION: Put all qubits into superposition
     lines.append("// Initial superposition")
     for k in range(num_qubits):
         lines.append(f"h q[{k}];")
@@ -63,12 +72,11 @@ def build_qaoa_circuit_openqasm(cost_matrix: list, p_layers: int = 1) -> str:
 
     for layer in range(p_layers):
         lines.append(f"// === QAOA Layer {layer + 1} ===")
-        # 2. COST LAYER: Penalize qubits based on the financial impact of the assignment
-        lines.append("// Phase layer")
 
-        # Normalize costs to 0-1 range for circuit stability
-        flat       = [cost_matrix[i][j] for i in range(n) for j in range(n)]
-        max_cost   = max(flat) or 1
+        # 2. COST LAYER: Phase-shift each qubit based on its assignment cost
+        lines.append("// Phase layer")
+        flat     = [cost_matrix[i][j] for i in range(n) for j in range(n)]
+        max_cost = max(flat) or 1
         for i in range(n):
             for j in range(n):
                 k          = i * n + j
@@ -76,17 +84,16 @@ def build_qaoa_circuit_openqasm(cost_matrix: list, p_layers: int = 1) -> str:
                 angle      = 2.0 * gamma * normalized
                 lines.append(f"rz({angle:.6f}) q[{k}];")
 
-        # 3. CONSTRAINT LAYERS: Use CNOT gates to ensure we don't assign 
-        # two analysts to the same alert (and vice versa)
+        # 3. CONSTRAINT LAYERS: CNOT pairs penalize duplicate assignments
         lines.append("// Row constraints")
         for i in range(n):
             for j1 in range(n):
                 for j2 in range(j1 + 1, n):
                     k1 = i * n + j1
                     k2 = i * n + j2
-                    lines.append(f"cx q[{k1}], q[{k2}];")
+                    lines.append(f"cx q[{k1}],q[{k2}];")
                     lines.append(f"rz({2.0 * gamma:.6f}) q[{k2}];")
-                    lines.append(f"cx q[{k1}], q[{k2}];")
+                    lines.append(f"cx q[{k1}],q[{k2}];")
 
         lines.append("// Column constraints")
         for j in range(n):
@@ -94,24 +101,27 @@ def build_qaoa_circuit_openqasm(cost_matrix: list, p_layers: int = 1) -> str:
                 for i2 in range(i1 + 1, n):
                     k1 = i1 * n + j
                     k2 = i2 * n + j
-                    lines.append(f"cx q[{k1}], q[{k2}];")
+                    lines.append(f"cx q[{k1}],q[{k2}];")
                     lines.append(f"rz({2.0 * gamma:.6f}) q[{k2}];")
-                    lines.append(f"cx q[{k1}], q[{k2}];")
+                    lines.append(f"cx q[{k1}],q[{k2}];")
 
-        # 4. MIXER LAYER: Allows the quantum state to 'evolve' toward the low-cost solutions
+        # 4. MIXER LAYER: rx rotations allow the state to explore the solution space
         lines.append("// Mixing layer")
         for k in range(num_qubits):
             lines.append(f"rx({2.0 * beta:.6f}) q[{k}];")
         lines.append("")
 
-    # 5. MEASUREMENT: Collapse the quantum state into a classical bitstring (0s and 1s)
-    lines.append("c = measure q;")
+    # 5. MEASUREMENT: per-qubit measure (OpenQASM 2.0 syntax)
+    lines.append("// Measurement")
+    for k in range(num_qubits):
+        lines.append(f"measure q[{k}] -> c[{k}];")
+
     return "\n".join(lines)
 
 
 def decode_bitstring(bitstring: str, n: int, cost_matrix: list) -> list:
     """
-    Translates the quantum 'bitstring' (e.g., '10000100') back into 
+    Translates the quantum 'bitstring' (e.g., '10000100') back into
     human-readable analyst assignments.
     """
     assignment = [-1] * n
@@ -187,14 +197,16 @@ def handle_submit(event: dict) -> dict:
 
 def handle_complete(event: dict) -> dict:
     """
-    Triggered by an EventBridge rule when the Braket task status 
+    Triggered by an EventBridge rule when the Braket task status
     changes to 'COMPLETED' or 'FAILED'.
     """
     detail     = event.get("detail", {})
     task_arn   = detail.get("quantumTaskArn", "")
     job_status = detail.get("status", "FAILED")
 
-    # 1. Find the original job in DynamoDB using the Task ARN
+    # FIX: replaced full-table scan with a GSI query on braket_task_arn.
+    # The GSI "braket-task-arn-index" is defined in storage/main.tf.
+    # This is O(1) instead of O(table size) and costs a single read unit.
     query_resp = table.query(
         IndexName="braket-task-arn-index",
         KeyConditionExpression=Key("braket_task_arn").eq(task_arn),
@@ -295,7 +307,7 @@ No bullet points. No technical jargon. Confident, executive tone. Format dollar 
 
 def lambda_handler(event, context):
     """
-    Dispatcher: 
+    Dispatcher:
     - If EventBridge sends a 'detail' (task update), handle completion.
     - Otherwise, handle a new submission.
     """
