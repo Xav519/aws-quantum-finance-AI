@@ -455,7 +455,6 @@
       <option value="3">3 Analysts · 3 Threats</option>
       <option value="4" selected>4 Analysts · 4 Threats</option>
       <option value="5">5 Analysts · 5 Threats</option>
-      <option value="6">6 Analysts · 6 Threats</option>
     </select>
   </div>
 
@@ -519,7 +518,6 @@ const ANALYST_NAMES = {
   3: ["Sarah (Network)", "Marc (Phishing)", "David (Forensics)"],
   4: ["Sarah (Network)", "Marc (Phishing)", "David (Forensics)", "Lisa (Malware)"],
   5: ["Sarah (Network)", "Marc (Phishing)", "David (Forensics)", "Lisa (Malware)", "Chen (Cloud)"],
-  6: ["Sarah (Network)", "Marc (Phishing)", "David (Forensics)", "Lisa (Malware)", "Chen (Cloud)", "Aisha (Insider)"],
 };
 
 const ALERT_NAMES = {
@@ -527,7 +525,6 @@ const ALERT_NAMES = {
   3: ["Ransomware", "Data Exfiltration", "Phishing Campaign"],
   4: ["Ransomware", "Data Exfiltration", "Phishing Campaign", "SQL Injection"],
   5: ["Ransomware", "Data Exfiltration", "Phishing Campaign", "SQL Injection", "DDoS Attack"],
-  6: ["Ransomware", "Data Exfiltration", "Phishing Campaign", "SQL Injection", "DDoS Attack", "Insider Threat"],
 };
 
 // This variable will hold our timer for when we need to check the status of a Quantum job.

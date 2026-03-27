@@ -57,10 +57,10 @@ def lambda_handler(event, context):
             "error": "analysts, alerts, and cost_matrix dimensions must all match"
         })
 
-    # 5. Boundary Check: This specific logic only handles small scale (2 to 6)
-    if n < 2 or n > 6:
+    # 5. Boundary Check: This specific logic only handles small scale (2 to 5)
+    if n < 2 or n > 5:
         return api_response(400, {
-            "error": "Problem size must be between 2 and 6"
+            "error": "Problem size must be between 2 and 5"
         })
 
     # 6. Generate a unique ID for this specific calculation job
