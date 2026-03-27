@@ -54,20 +54,24 @@ def lambda_handler(event, context):
         }
 
     if status == "COMPLETE":
-        assignment_raw = item.get("assignment", [])
-        analysts       = item.get("analysts", [])
-        alerts          = item.get("alerts", [])
-        total_cost     = item.get("total_cost", "0")
+        assignment_raw   = item.get("assignment", [])
+        analysts         = item.get("analysts", [])
+        alerts           = item.get("alerts", [])
+        total_cost       = item.get("total_cost", "0")
+        cost_matrix_raw  = json.loads(item.get("cost_matrix", "[]"))  # ADD THIS
 
-        # Reconstruct pairs if stored as index list
         if assignment_raw and isinstance(assignment_raw[0], (int, float, Decimal)):
             assignment_indices = [int(a) for a in assignment_raw]
             pairs = [
-                {"analyst": analysts[i], "alert": alerts[assignment_indices[i]]}
+                {
+                    "analyst": analysts[i],
+                    "alert":   alerts[assignment_indices[i]],
+                    "cost":    cost_matrix_raw[i][assignment_indices[i]] if cost_matrix_raw else 0  # ADD cost
+                }
                 for i in range(len(analysts))
             ]
         else:
-            pairs = assignment_raw  # Already a list of dicts
+            pairs = assignment_raw
 
         return {
             "statusCode": 200,
