@@ -159,7 +159,7 @@ def handle_submit(event: dict) -> dict:
     alerts      = event["alerts"]
     n           = len(analysts)
 
-    circuit = build_qaoa_circuit_jaqcd(cost_matrix, p_layers=1)
+    circuit = build_qaoa_circuit_jaqcd(cost_matrix, p_layers=3)
 
     num_qubits = n * n
 
