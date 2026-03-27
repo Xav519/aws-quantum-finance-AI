@@ -830,7 +830,7 @@
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const API_URL   = "${api_url}";
+const API_URL   = "$${api_url}";
 const THRESHOLD = 4;
 
 const ANALYST_NAMES = {
@@ -884,13 +884,13 @@ function updateModeBadge(n) {
     label.textContent = "Classical Brute-Force";
     btn.className     = "classical";
     info.className    = "info-bar";
-    info.innerHTML    = `N = <span>${n}</span> <span class="info-sep">·</span> Evaluates <span>${fact}</span> combinations <span class="info-sep">·</span> Exact global optimum <span class="info-sep">·</span> Synchronous result`;
+    info.innerHTML    = `N = <span>$${n}</span> <span class="info-sep">·</span> Evaluates <span>$${fact}</span> combinations <span class="info-sep">·</span> Exact global optimum <span class="info-sep">·</span> Synchronous result`;
   } else {
     badge.className   = "mode-badge quantum";
     label.textContent = "Quantum QAOA";
     btn.className     = "quantum";
     info.className    = "info-bar quantum-mode";
-    info.innerHTML    = `N = <span>${n}</span> <span class="info-sep">·</span> <span>${fact}</span> combinations <span class="info-sep">·</span> QAOA on Amazon Braket SV1 <span class="info-sep">·</span> <span>${n*n} qubits</span> <span class="info-sep">·</span> 1,000 shots <span class="info-sep">·</span> Async result`;
+    info.innerHTML    = `N = <span>$${n}</span> <span class="info-sep">·</span> <span>$${fact}</span> combinations <span class="info-sep">·</span> QAOA on Amazon Braket SV1 <span class="info-sep">·</span> <span>$${n*n} qubits</span> <span class="info-sep">·</span> 1,000 shots <span class="info-sep">·</span> Async result`;
   }
 }
 
@@ -899,10 +899,10 @@ function updateChips(n) {
   const alerts   = ALERT_NAMES[n];
   document.getElementById("analyst-chips").innerHTML =
     '<span class="chips-label">Analysts</span>' +
-    analysts.map(a => `<span class="label-chip analyst">${a}</span>`).join("");
+    analysts.map(a => `<span class="label-chip analyst">$${a}</span>`).join("");
   document.getElementById("alert-chips").innerHTML =
     '<span class="chips-label">Threats</span>' +
-    alerts.map(a => `<span class="label-chip alert">⚠ ${a}</span>`).join("");
+    alerts.map(a => `<span class="label-chip alert">⚠ $${a}</span>`).join("");
 }
 
 function buildTable(n) {
@@ -911,17 +911,17 @@ function buildTable(n) {
   const t        = document.getElementById("cost-table");
   let html = "<tr><th></th>";
   alerts.forEach(a => {
-    html += `<th class="col-header" title="${a}">⚠ ${a}</th>`;
+    html += `<th class="col-header" title="$${a}">⚠ $${a}</th>`;
   });
   html += "</tr>";
   analysts.forEach((analyst, i) => {
-    html += `<tr><td class="row-header">${analyst}</td>`;
+    html += `<tr><td class="row-header">$${analyst}</td>`;
     alerts.forEach((_, j) => {
       html += `<td><input
         type="text"
-        id="c${i}_${j}"
+        id="c$${i}_$${j}"
         placeholder="—"
-        oninput="onCellInput(this, ${i}, ${j})"
+        oninput="onCellInput(this, $${i}, $${j})"
         onkeypress="return allowCostKey(event)"
         autocomplete="off"
       /></td>`;
@@ -945,7 +945,7 @@ function generateValues() {
   const n = getN();
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      const el = document.getElementById(`c${i}_${j}`);
+      const el = document.getElementById(`c$${i}_$${j}`);
       if (!el.value || el.value === "") el.value = randCost();
     }
   }
@@ -956,7 +956,7 @@ function clearTable() {
   const n = getN();
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      document.getElementById(`c${i}_${j}`).value = "";
+      document.getElementById(`c$${i}_$${j}`).value = "";
     }
   }
   updateLiveTotal();
@@ -969,7 +969,7 @@ function updateLiveTotal() {
   let   all = true;
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      const v = parseInt(document.getElementById(`c${i}_${j}`).value);
+      const v = parseInt(document.getElementById(`c$${i}_$${j}`).value);
       if (!isNaN(v)) sum += v;
       else all = false;
     }
@@ -984,7 +984,7 @@ function readMatrix() {
   for (let i = 0; i < n; i++) {
     const row = [];
     for (let j = 0; j < n; j++) {
-      const v = parseInt(document.getElementById(`c${i}_${j}`).value);
+      const v = parseInt(document.getElementById(`c$${i}_$${j}`).value);
       if (isNaN(v) || v < 0) return null;
       row.push(v);
     }
@@ -1006,7 +1006,7 @@ async function submitJob() {
   setSubmitting(true);
   resetResult();
   try {
-    const resp = await fetch(`${API_URL}/optimize`, {
+    const resp = await fetch(`$${API_URL}/optimize`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify(payload),
@@ -1024,7 +1024,7 @@ async function submitJob() {
     }
   } catch (e) {
     setSubmitting(false);
-    showError(`Network error: ${e.message}`);
+    showError(`Network error: $${e.message}`);
   }
 }
 
@@ -1032,7 +1032,7 @@ function startPolling(jobId, n) {
   clearInterval(pollInterval);
   pollInterval = setInterval(async () => {
     try {
-      const resp = await fetch(`${API_URL}/jobs/${jobId}`);
+      const resp = await fetch(`$${API_URL}/jobs/$${jobId}`);
       const data = await resp.json();
       if (data.status === "COMPLETE") {
         clearInterval(pollInterval);
@@ -1043,7 +1043,7 @@ function startPolling(jobId, n) {
         clearInterval(pollInterval);
         hideQuantumStatus();
         setSubmitting(false);
-        showError(`Quantum job failed: ${data.status}`);
+        showError(`Quantum job failed: $${data.status}`);
       }
     } catch (_) {}
   }, 4000);
@@ -1053,7 +1053,7 @@ function showQuantumStatus(jobId, n, qubits, shots) {
   const qs = document.getElementById("quantum-status");
   qs.className = "show";
   document.getElementById("qs-info").textContent =
-    `Job: ${jobId} · ${qubits} qubits · ${shots} shots · Device: Amazon Braket SV1`;
+    `Job: $${jobId} · $${qubits} qubits · $${shots} shots · Device: Amazon Braket SV1`;
 }
 
 function hideQuantumStatus() {
@@ -1070,30 +1070,30 @@ function showResult(data, n) {
     : "✅ Brute-Force — Global Optimum Found";
 
   const pairsHtml = pairs.map(p => `
-    <div class="pair-card ${cls}">
-      <div class="pair-names">${p.analyst}<span class="pair-arrow">→</span>⚠ ${p.alert || p.file}</div>
-      <div class="pair-cost">${formatUSD(p.cost)} breach impact</div>
+    <div class="pair-card $${cls}">
+      <div class="pair-names">$${p.analyst}<span class="pair-arrow">→</span>⚠ $${p.alert || p.file}</div>
+      <div class="pair-cost">$${formatUSD(p.cost)} breach impact</div>
     </div>
   `).join("");
 
   document.getElementById("result-panel").className = "show";
   document.getElementById("result-panel").innerHTML = `
     <div class="result-header">
-      <h2>${methodLabel}</h2>
+      <h2>$${methodLabel}</h2>
     </div>
     <div class="result-cost">
       <span class="cost-label">Total Financial Exposure</span>
-      ${formatUSD(total)}
+      $${formatUSD(total)}
     </div>
-    <div class="result-grid">${pairsHtml}</div>
-    <div class="narrative">${data.narrative || ""}</div>
+    <div class="result-grid">$${pairsHtml}</div>
+    <div class="narrative">$${data.narrative || ""}</div>
   `;
 }
 
 function showError(msg) {
   const panel = document.getElementById("result-panel");
   panel.className = "show";
-  panel.innerHTML = `<div class="error-box">⚠ ${msg}</div>`;
+  panel.innerHTML = `<div class="error-box">⚠ $${msg}</div>`;
 }
 
 function setSubmitting(on) {
