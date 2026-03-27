@@ -1,12 +1,18 @@
 locals {
-    # Standard prefix for all resources to ensure uniqueness and easy identification
   prefix = "${var.project}-${var.environment}"
+
+  # FIX: truncate prefix to 40 chars so "${prefix}-braket-results" stays
+  # within S3's 63-character bucket name limit.
+  # "braket-results" is 14 chars + 1 hyphen = 15, leaving 48 chars for the prefix.
+  # We use 40 to be safe with any project/environment combination.
+  prefix_safe = substr(local.prefix, 0, 40)
 }
 
 # - S3 Bucket: Raw Braket Results -
 # This is where the output files from quantum computing tasks will live.
 resource "aws_s3_bucket" "braket_results" {
-  bucket = "${local.prefix}-braket-results"
+  # FIX: use prefix_safe instead of prefix to avoid exceeding the 63-char limit.
+  bucket = "${local.prefix_safe}-braket-results"
 }
 
 # Enables Versioning: Allows you to recover previous versions of an object.
@@ -48,7 +54,21 @@ resource "aws_dynamodb_table" "jobs" {
     type = "S"
   }
 
-# Automatic Cleanup: Deletes the item when the 'expires_at' Unix timestamp is reached.
+  # FIX: added attribute + GSI so handle_complete can query by braket_task_arn
+  # instead of doing a full-table scan. This makes the lookup O(1) in cost and
+  # latency regardless of how many jobs are in the table.
+  attribute {
+    name = "braket_task_arn"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "braket-task-arn-index"
+    hash_key        = "braket_task_arn"
+    projection_type = "ALL"
+  }
+
+  # Automatic Cleanup: Deletes the item when the 'expires_at' Unix timestamp is reached.
   ttl {
     attribute_name = "expires_at"
     enabled        = true
