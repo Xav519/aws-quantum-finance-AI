@@ -5,5 +5,5 @@ output "function_arn" {
 
 output "function_name" {
   description = "Lambda function name"
-  value       = aws_lambda_function.orchestrator.name
+  value       = aws_lambda_function.orchestrator.function_name
 }
