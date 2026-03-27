@@ -46,7 +46,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
         Action   = ["lambda:InvokeFunction"]
         Resource = "arn:aws:lambda:*:*:function:${local.prefix}-*"
       },
-    # AI/ML: Specifically allows calling the Claude 3 Haiku model via Bedrock.
+    # AI/ML: Specifically allows calling the Claude 4.5 Haiku model via Bedrock.
       {
         Effect   = "Allow"
         Action   = ["bedrock:InvokeModel"]
