@@ -95,6 +95,7 @@ module "observability" {
   project                  = var.project
   environment              = var.environment
   alert_email              = var.alert_email
+  aws_region               = var.aws_region  # FIX: added - required by dashboard widget properties
   lambda_orchestrator_name = module.lambda_orchestrator.function_name
   lambda_classical_name    = module.lambda_classical.function_name
   lambda_braket_name       = module.lambda_braket.function_name
