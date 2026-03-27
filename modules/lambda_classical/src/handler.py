@@ -15,7 +15,7 @@ bedrock  = boto3.client("bedrock-runtime", region_name="us-east-1")
 dynamodb = boto3.resource("dynamodb")
 table    = dynamodb.Table(os.environ["DYNAMODB_TABLE"])
 # Uses Claude 4.5 by default if not specified in environment variables
-MODEL_ID = os.environ.get("BEDROCK_MODEL", "us.anthropic.claude-3-5-haiku-20241022-v1:0")
+MODEL_ID = os.environ.get("BEDROCK_MODEL", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
 
 
 def call_bedrock(prompt: str, max_tokens: int = 400) -> str:
