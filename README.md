@@ -49,10 +49,10 @@ David       $56,000     $65,000    $111,000    $106,000    $34,000   ← David o
 Lisa        $61,000    $120,000     $28,000     $77,000   $115,000   ← Lisa on Phishing
 Chen       $107,000    $101,000     $10,000     $81,000    $19,000   ← Chen on Phishing
 
-Greedy (intuition-based) assignment:  $209,000 total exposure
-Optimal assignment:                   $247,000 total exposure
+Greedy (intuition-based) assignment:  $233,000 total exposure
+Optimal assignment:                   $209,000 total exposure
                                        ────────────────────────
-Savings from optimization:            $38,000 total saving for this situation
+Savings from optimization:            $24,000 total saving for this situation
 ```
 
 This system finds that optimal assignment in seconds, every time, with mathematical guarantees.
