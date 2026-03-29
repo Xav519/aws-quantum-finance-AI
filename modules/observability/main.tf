@@ -2,22 +2,27 @@ locals {
   prefix = "${var.project}-${var.environment}"
 }
 
-# ── SNS topic for alerts ──────────────────────────────────────────────────────
+# --- SNS: Notification Channel ---
+# This serves as the 'Outbound' delivery system for system failures.
 resource "aws_sns_topic" "alerts" {
   name = "${local.prefix}-alerts"
   tags = { Project = var.project, Environment = var.environment }
 }
 
+# Subscription: Sends an email to the address defined in your variables.
+# Note: You must manually click the 'Confirm Subscription' link in the email after deployment.
 resource "aws_sns_topic_subscription" "email" {
   topic_arn = aws_sns_topic.alerts.arn
   protocol  = "email"
   endpoint  = var.alert_email
 }
 
-# ── CloudWatch Log Groups (explicit, 7-day retention) ─────────────────────────
+# --- CloudWatch: Log Management ---
+# Explicitly defining log groups allows us to set a 'Retention Policy'.
+# Without this, Lambda logs stay in AWS forever, incurring unnecessary costs.
 resource "aws_cloudwatch_log_group" "orchestrator" {
   name              = "/aws/lambda/${var.lambda_orchestrator_name}"
-  retention_in_days = 7
+  retention_in_days = 7 # Automatically deletes logs older than one week
 }
 
 resource "aws_cloudwatch_log_group" "classical" {
@@ -35,11 +40,14 @@ resource "aws_cloudwatch_log_group" "get_job" {
   retention_in_days = 7
 }
 
-# ── CloudWatch Dashboard ──────────────────────────────────────────────────────
+# --- CloudWatch: Operations Dashboard ---
+# A centralized visual UI to monitor the health of the Hybrid Quantum/AI pipeline.
 resource "aws_cloudwatch_dashboard" "main" {
   dashboard_name = "${local.prefix}-dashboard"
 
+  # The JSON body defines the layout of the graph widgets.
   dashboard_body = jsonencode({
+    # Widget 1: Throughput (How many jobs are we running?)
     widgets = [
       {
         type = "metric"
@@ -56,6 +64,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           ]
         }
       },
+      # Widget 2: Stability (Are any solvers crashing?)
       {
         type = "metric"
         properties = {
@@ -70,6 +79,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           ]
         }
       },
+      # Widget 3: Performance (Classical vs. Quantum Latency)
       {
         type = "metric"
         properties = {
@@ -88,16 +98,18 @@ resource "aws_cloudwatch_dashboard" "main" {
   })
 }
 
-# ── Alarm: Orchestrator errors ────────────────────────────────────────────────
+# --- CloudWatch: Proactive Alerting ---
+# Instead of watching the dashboard, this alarm 'pushes' a notification if 
+# the Orchestrator fails.
 resource "aws_cloudwatch_metric_alarm" "orchestrator_errors" {
   alarm_name          = "${local.prefix}-orchestrator-errors"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
+  evaluation_periods  = 1 # Trigger immediately after one failed period
   metric_name         = "Errors"
   namespace           = "AWS/Lambda"
   period              = 60
   statistic           = "Sum"
-  threshold           = 1
+  threshold           = 1 # If errors >= 1, fire the SNS topic
   alarm_description   = "Orchestrator Lambda error detected"
   alarm_actions       = [aws_sns_topic.alerts.arn]
 
