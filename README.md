@@ -9,7 +9,7 @@
 [![Terraform](https://img.shields.io/badge/Terraform-10%20Modules%20%7C%2038%20Resources-7B42BC?logo=terraform)](https://www.terraform.io)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://python.org)
 [![Quantum](https://img.shields.io/badge/Quantum-QAOA%20%7C%2025%20Qubits%20%7C%201%2C000%20Shots-7C3AED)](https://aws.amazon.com/braket)
-[![AI](https://img.shields.io/badge/AI-Claude%203.5%20Haiku%20%7C%20Amazon%20Bedrock-FF9900)](https://aws.amazon.com/bedrock)
+[![AI](https://img.shields.io/badge/AI-Claude%204.5%20Haiku%20%7C%20Amazon%20Bedrock-FF9900)](https://aws.amazon.com/bedrock)
 
 ---
 
