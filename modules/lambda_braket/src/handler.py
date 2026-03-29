@@ -1,9 +1,25 @@
 """
-Lambda Braket - QAOA SOC assignment optimizer
-Values = Breach Impact Cost ($): Hourly Financial Loss x Hours to Mitigate
+================================================================================
+LAMBDA BRAKET: QAOA SOC ASSIGNMENT OPTIMIZER
+================================================================================             
+OVERVIEW:
+  This Lambda functions as a dual-purpose handler (Submit/Complete) to solve 
+  Analyst-to-Alert assignment problems using Quantum Computing (QAOA).
 
-Circuit format: Braket JAQCD (JSON IR) with correct per-gate schema field names.
-Each gate type has its own required JSON shape per braket.ir.jaqcd.instructions.
+CORE LOGIC:
+  1. QUANTUM: Builds a JAQCD (JSON IR) circuit representing a cost Hamiltonian.
+     - Maps 'Breach Impact Cost' (Loss x Time) to qubit phases.
+     - Encodes row/column constraints using CNOT + Rz 'penalty' gates.
+  2. CLASSICAL: Verifies the quantum result against a brute-force permutation
+     to ensure the global optimum for small-scale (N) problems.
+  3. GEN-AI: Uses Claude 4.5 (Bedrock) to translate the raw mathematical 
+     optimization into a 3-sentence board-level executive summary.
+
+INTEGRATIONS:
+  - Amazon Braket (SV1 Simulator): Executes the quantum circuit.
+  - Amazon Bedrock (Claude 4.5): Generates CISO-level narrative.
+  - Amazon DynamoDB: Persists job state and results.
+================================================================================
 """
 
 import json
