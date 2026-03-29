@@ -4,9 +4,11 @@ locals {
 }
 
 # --- Standard Lambda Role ---
+# This role provides the base execution permissions for standard backend functions.
 resource "aws_iam_role" "lambda_role" {
   name = "${local.prefix}-lambda-role"
 
+  # Trust policy: Allows the AWS Lambda service to "assume" this role and act on your behalf.
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -24,11 +26,13 @@ resource "aws_iam_role_policy" "lambda_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      # CloudWatch Logs: Allows the Lambda to write its own execution logs for debugging.
       {
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "arn:aws:logs:*:*:*"
       },
+      # DynamoDB: Restricted to tables starting with our project prefix for better security.
       {
         Effect   = "Allow"
         Action   = ["dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:UpdateItem", "dynamodb:Scan", "dynamodb:Query"]
@@ -37,14 +41,12 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "arn:aws:dynamodb:*:*:table/${local.prefix}-*/index/*"
         ]
       },
+      # Lambda-to-Lambda: Enables the Orchestrator to trigger sub-functions.
       {
         Effect   = "Allow"
         Action   = ["lambda:InvokeFunction"]
         Resource = "arn:aws:lambda:*:*:function:${local.prefix}-*"
       },
-      # FIX: use cross-region inference profile ARN (required for Claude 4.x models)
-      # The old foundation-model ARN only works for Claude 2/3; Claude 4.x requires
-      # on-demand throughput via an inference profile.
       {
         Effect = "Allow"
         Action = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
@@ -53,8 +55,8 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "arn:aws:bedrock:us-east-1:*:inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0"
         ]
       },
-
-      # Added permissions for AWS Marketplace subscription management, which is required to access certain Bedrock models. This allows the Lambda function to check subscription status and manage subscriptions as needed.
+      # Added permissions for AWS Marketplace subscription management, which is required to access certain Bedrock models. 
+      # This allows the Lambda function to check subscription status and manage subscriptions as needed.
       {
         Effect   = "Allow"
         Action   = ["aws-marketplace:ViewSubscriptions", "aws-marketplace:Subscribe", "aws-marketplace:Unsubscribe"]
@@ -74,6 +76,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
 
 
 # --- Braket Lambda Role (Quantum Computing) ---
+# Separate role for Quantum tasks to maintain the "Principle of Least Privilege".
 resource "aws_iam_role" "lambda_braket_role" {
   name = "${local.prefix}-lambda-braket-role"
 
@@ -120,7 +123,7 @@ resource "aws_iam_role_policy" "lambda_braket_policy" {
           "arn:aws:s3:::amazon-braket-*/*"
         ]
       },
-      # FIX: braket role was missing Bedrock permission entirely — added here
+      # FIX: braket role was missing Bedrock permission entirely - added here
       {
         Effect = "Allow"
         Action = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
@@ -130,7 +133,8 @@ resource "aws_iam_role_policy" "lambda_braket_policy" {
         ]
       },
 
-      # Added permissions for AWS Marketplace subscription management, which is required to access certain Bedrock models. This allows the Lambda function to check subscription status and manage subscriptions as needed.
+      # Added permissions for AWS Marketplace subscription management, which is required to access certain Bedrock models. 
+      # This allows the Lambda function to check subscription status and manage subscriptions as needed.
       {
         Effect   = "Allow"
         Action   = ["aws-marketplace:ViewSubscriptions", "aws-marketplace:Subscribe", "aws-marketplace:Unsubscribe"]
