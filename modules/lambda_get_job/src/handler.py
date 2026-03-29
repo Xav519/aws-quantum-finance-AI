@@ -1,6 +1,26 @@
 """
-Lambda Get Job — Reads DynamoDB and returns job status/result.
-Called by API Gateway: GET /jobs/{job_id}
+================================================================================
+LAMBDA GET JOB: DYNAMODB RESULT RETRIEVER
+================================================================================
+OVERVIEW:
+  This function serves as the 'Status Check' endpoint for the frontend. Since 
+  Quantum tasks are asynchronous, this Lambda allows the client to poll for 
+  results using a unique Job ID.
+
+CORE LOGIC:
+  1. STATE POLLING: Checks the 'status' field in DynamoDB.
+     - RETURNS 202 (Accepted): If the job is still 'PENDING'.
+     - RETURNS 200 (OK): If the job is 'COMPLETE', returning the full result.
+     - RETURNS 404/500: For missing jobs or execution errors.
+  2. DATA RECONSTRUCTION: Maps raw index arrays from the Quantum/Classical 
+     solvers back into human-readable Analyst-Alert pairs with costs.
+  3. SERIALIZATION: Handles AWS DynamoDB 'Decimal' types to ensure the JSON 
+     payload is compatible with standard web browsers.
+
+API GATEWAY INTEGRATION:
+  - Method: GET
+  - Path: /jobs/{job_id}
+================================================================================
 """
 
 import json
