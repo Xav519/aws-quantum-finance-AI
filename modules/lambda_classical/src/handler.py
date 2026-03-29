@@ -1,6 +1,24 @@
 """
-Lambda Classical - Brute-force SOC assignment optimizer
-Values = Breach Impact Cost ($): Hourly Financial Loss × Hours to Mitigate
+================================================================================
+LAMBDA CLASSICAL: BRUTE-FORCE SOC ASSIGNMENT OPTIMIZER
+================================================================================
+OVERVIEW:
+  This Lambda provides a deterministic, classical solution to the Analyst-to-Alert 
+  assignment problem. It is designed for smaller datasets where 
+  evaluating every possibility is faster than setting up a quantum circuit.
+
+CORE LOGIC:
+  1. CLASSICAL MATH: Uses 'itertools.permutations' to brute-force the global 
+     optimum by calculating the 'Breach Impact Cost' for every possible pairing.
+  2. COMPARATIVE ANALYSIS: Calculates a "Worst Case" scenario to determine 
+     the theoretical financial savings achieved by the optimization.
+  3. GEN-AI (BEDROCK): Leverages Claude 4.5 to transform raw cost matrices into 
+     a 3-sentence, board-ready CISO narrative.
+
+INTEGRATIONS:
+  - Amazon Bedrock (Claude 4.5): Humanizes technical optimization results.
+  - Amazon DynamoDB: Records final results with a 7-day Time-to-Live (TTL).
+================================================================================
 """
 
 import json
