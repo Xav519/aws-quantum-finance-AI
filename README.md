@@ -1,7 +1,7 @@
 # SOC: Optimal Threat Dispatcher
 ### Cyber Breach Liability Minimization via Hybrid Quantum-Classical Computing on AWS
 
-> **A production-grade, fully Terraform-provisioned AWS system that uses the Quantum Approximate Optimization Algorithm (QAOA) on Amazon Braket SV1 to optimally assign SOC analysts to active cyber threats — minimizing a bank's total financial exposure from concurrent security incidents. Executive narratives are generated in real time by Claude 4.5 Haiku via Amazon Bedrock.**
+> **A production-grade, fully Terraform-provisioned AWS system that uses the Quantum Approximate Optimization Algorithm (QAOA) on Amazon Braket SV1 to optimally assign SOC analysts to active cyber threats - minimizing a bank's total financial exposure from concurrent security incidents. Executive narratives are generated in real time by Claude 4.5 Haiku via Amazon Bedrock.**
 
 ---
 
@@ -35,24 +35,24 @@
 
 ## The Problem
 
-When a bank's Security Operations Center faces **multiple simultaneous cyber threats**, the duty manager must decide in minutes which analyst handles which incident. This decision is typically made under extreme pressure using intuition and experience — and it is provably suboptimal.
+When a bank faces **multiple simultaneous cyber incidents**, managers must rapidly assign analysts under intense pressure. These decisions are often based on judgment rather than a structured approach, leading to inefficiencies.
 
-Every analyst has different specializations. Every threat has different financial consequences per hour it goes unmitigated. The wrong assignment — putting a phishing specialist on a network intrusion alert — can cost hundreds of thousands of dollars in additional breach exposure.
+Because each analyst has specialized expertise and each threat carries a different financial impact, misallocating resources can significantly increase losses and prolong exposure.
 
 ```
 The Assignment Problem:
 
            Ransomware  Data Exfil  Phishing  SQL Inject  DDoS
-Sarah      $71,000    $99,000    $102,000    $74,000    $16,000   ← Sarah handles DDoS fastest
-Marc       $112,000   $29,000     $65,000    $99,000    $48,000   ← Marc owns Data Exfiltration
-David       $54,000   $63,000    $112,000   $105,000    $32,000   ← David on Ransomware
-Lisa        $59,000  $119,000     $68,000    $75,000   $113,000   ← Lisa clears Phishing
-Chen       $104,000  $100,000     $10,000    $79,000    $20,000   ← Chen crushes SQL Injection
+Sarah       $72,000     $95,000     $98,000     $75,000    $37,000   ← Sarah on DDos
+Marc       $112,000     $31,000     $67,000     $99,000    $49,000   ← Marc on Data Exfiltration
+David       $56,000     $65,000    $111,000    $106,000    $34,000   ← David on Ransomware
+Lisa        $61,000    $120,000     $28,000     $77,000   $115,000   ← Lisa on Phishing
+Chen       $107,000    $101,000     $10,000     $81,000    $19,000   ← Chen on Phishing
 
-Greedy (intuition-based) assignment:  $390,000 total exposure
-Optimal assignment:                   $184,000 total exposure
+Greedy (intuition-based) assignment:  $209,000 total exposure
+Optimal assignment:                   $247,000 total exposure
                                        ────────────────────────
-Savings from optimization:            $206,000 per incident
+Savings from optimization:            $38,000 total saving for this situation
 ```
 
 This system finds that optimal assignment in seconds, every time, with mathematical guarantees.
