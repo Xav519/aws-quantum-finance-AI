@@ -16,21 +16,23 @@ provider "aws" {
   region = var.aws_region
 }
 
-# ── 1. IAM ────────────────────────────────────────────────────────────────────
+# --- 1. IAM (Security Foundation) ---
+# Creates roles/policies. Others depend on this for permissions.
 module "iam" {
   source      = "../modules/iam"
   project     = var.project
   environment = var.environment
 }
 
-# ── 2. Storage ────────────────────────────────────────────────────────────────
+# --- 2. Storage (Data Foundation) ---
+# Creates DynamoDB and S3. Others depend on this for data locations.
 module "storage" {
   source      = "../modules/storage"
   project     = var.project
   environment = var.environment
 }
 
-# ── 3. Lambda Classical ───────────────────────────────────────────────────────
+# --- 3. Lambda Classical (The Solver) ---
 module "lambda_classical" {
   source              = "../modules/lambda_classical"
   project             = var.project
@@ -39,7 +41,7 @@ module "lambda_classical" {
   dynamodb_table_name = module.storage.dynamodb_table_name
 }
 
-# ── 4. Lambda Braket ──────────────────────────────────────────────────────────
+# --- 4. Lambda Braket (The Quantum Solver) ---
 module "lambda_braket" {
   source                 = "../modules/lambda_braket"
   project                = var.project
@@ -49,7 +51,7 @@ module "lambda_braket" {
   results_bucket_name    = module.storage.results_bucket_name
 }
 
-# ── 5. Lambda Get Job ─────────────────────────────────────────────────────────
+# --- 5. Lambda Get Job (The Reader) ---
 module "lambda_get_job" {
   source              = "../modules/lambda_get_job"
   project             = var.project
@@ -58,18 +60,21 @@ module "lambda_get_job" {
   dynamodb_table_name = module.storage.dynamodb_table_name
 }
 
-# ── 6. Lambda Orchestrator ────────────────────────────────────────────────────
+# --- 6. Lambda Orchestrator (The Brain) ---
+# Connects to the solvers so it knows who to "call" based on N-size.
 module "lambda_orchestrator" {
   source                = "../modules/lambda_orchestrator"
   project               = var.project
   environment           = var.environment
   lambda_role_arn       = module.iam.lambda_role_arn
+  # Passing function names allows the orchestrator to trigger them via AWS SDK
   lambda_classical_name = module.lambda_classical.function_name
   lambda_braket_name    = module.lambda_braket.function_name
   dynamodb_table_name   = module.storage.dynamodb_table_name
 }
 
-# ── 7. Messaging (EventBridge) — depends on Lambda Braket ─────────────────────
+# --- 7. Messaging (The Event Bridge) ---
+# Specifically waits for Braket Task completions to re-trigger logic.
 module "messaging" {
   source             = "../modules/messaging"
   project            = var.project
@@ -78,7 +83,8 @@ module "messaging" {
   lambda_braket_name = module.lambda_braket.function_name
 }
 
-# ── 8. API Gateway ────────────────────────────────────────────────────────────
+# --- 8. API Gateway (The Front Door) ---
+# Exposes the Orchestrator (POST) and Get Job (GET) to the public internet.
 module "api_gateway" {
   source                   = "../modules/api_gateway"
   project                  = var.project
@@ -89,7 +95,8 @@ module "api_gateway" {
   lambda_get_job_name      = module.lambda_get_job.function_name
 }
 
-# ── 9. Observability ──────────────────────────────────────────────────────────
+# --- 9. Observability (The Control Room) ---
+# Sets up the Dashboard, Logs, and SNS Alerts for all functions.
 module "observability" {
   source                   = "../modules/observability"
   project                  = var.project
@@ -102,7 +109,8 @@ module "observability" {
   lambda_get_job_name      = module.lambda_get_job.function_name
 }
 
-# ── 10. Demo Frontend ─────────────────────────────────────────────────────────
+# --- 10. Demo Frontend (The User Interface) ---
+# Deploys the S3 website and points it to the newly created API Gateway URL.
 module "demo_frontend" {
   source      = "../modules/demo_frontend"
   project     = var.project
