@@ -43,11 +43,11 @@ Because each analyst has specialized expertise and each threat carries a differe
 The Assignment Problem:
 
            Ransomware  Data Exfil  Phishing  SQL Inject  DDoS
-Sarah       $72,000     $95,000     $98,000     $75,000    $37,000   ← Sarah on DDos
+Sarah       $72,000     $95,000     $98,000     $75,000    $37,000   ← Sarah on SQl Injection
 Marc       $112,000     $31,000     $67,000     $99,000    $49,000   ← Marc on Data Exfiltration
 David       $56,000     $65,000    $111,000    $106,000    $34,000   ← David on Ransomware
 Lisa        $61,000    $120,000     $28,000     $77,000   $115,000   ← Lisa on Phishing
-Chen       $107,000    $101,000     $10,000     $81,000    $19,000   ← Chen on Phishing
+Chen       $107,000    $101,000     $10,000     $81,000    $19,000   ← Chen on DDos
 
 Greedy (intuition-based) assignment:  $233,000 total exposure
 Optimal assignment:                   $209,000 total exposure
