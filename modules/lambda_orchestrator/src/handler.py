@@ -1,9 +1,26 @@
 
 """
-Lambda Orchestrator
-  - N <= 4 → Classical brute-force
-  - N >= 5 → Quantum QAOA on Braket SV1
-  - Values represent Breach Impact Cost ($): Hourly Loss × Hours to Mitigate
+================================================================================
+LAMBDA ORCHESTRATOR: HYBRID QUANTUM-CLASSICAL ROUTER
+================================================================================
+OVERVIEW:
+  The entry point for all optimization requests. This Lambda acts as a traffic 
+  controller, validating input data and determining the most efficient solver 
+  based on problem complexity (N-size).
+
+ROUTING LOGIC:
+  1. CLASSICAL PATH (N <= Threshold):
+     - Uses 'RequestResponse' (Synchronous). 
+     - Waits for the Classical Lambda to finish and returns the result immediately.
+  2. QUANTUM PATH (N > Threshold):
+     - Uses 'Event' (Asynchronous). 
+     - Dispatches the task to the Braket Lambda and returns a 202 Accepted 
+       response with a Job ID for polling.
+
+VALIDATION:
+  - Enforces strict dimension matching between Analysts, Alerts, and Costs.
+  - Limits problem size (2-5) to manage simulator costs and complexity.
+================================================================================
 """
 
 import json
