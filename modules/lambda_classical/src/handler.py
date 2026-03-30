@@ -25,6 +25,7 @@ import json
 import os
 import itertools
 import boto3
+from math import factorial
 from datetime import datetime, timezone, timedelta
 
 # --- AWS Service Setup ---
@@ -152,11 +153,3 @@ Confident, executive tone. Dollar amounts should be formatted with commas.
         "total_cost": round(total_cost, 2),
         "narrative":  narrative,
     }
-
-
-def factorial(n):
-    # Simple math helper to calculate total combinations (N!)
-    r = 1
-    for i in range(2, n + 1):
-        r *= i
-    return r
