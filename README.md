@@ -167,6 +167,8 @@ this project proves the infrastructure works today, for the optimization problem
   <img src="./assets/ArchitectureDiagram.drawio.png" alt="Project Architecture" width="85%" >
 </p>
 
+*Made with draw.io*
+
 ---
 
 ## The Two Paths: Classical vs Quantum
