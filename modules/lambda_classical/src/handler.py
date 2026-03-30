@@ -117,7 +117,14 @@ Write exactly 3 sentences for a board-level audience:
 2. The key insight: why brute-force guarantees the global optimum (not a greedy local minimum), and what the total financial exposure is.
 3. The business value: what this means for the bank's risk posture and incident response efficiency.
 
-No bullet points. No technical jargon. Confident, executive tone. Dollar amounts should be formatted with commas.
+STRICT RULES:
+- Output exactly 3 sentences, no more, no less
+- Do NOT include a title, header, or markdown
+- Do NOT include line breaks
+- Start directly with the first sentence
+- No bullet points
+
+Confident, executive tone. Dollar amounts should be formatted with commas.
 """
     narrative = call_bedrock(prompt, max_tokens=350)
 
