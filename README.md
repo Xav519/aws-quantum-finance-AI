@@ -103,37 +103,37 @@ At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical ve
   <img src="./assets/WebsiteLandingPage.png"
        alt="WebsiteLandingPage"
        width="80%"
-       style="border: 2px solid white; border-radius: 8px;">
+       border="2">
 </p>
 
 ### Classical Example (N=3, instant result)
 
 <p align="center">
-  <img src="./assets/ExempleClassical3Initial.png" alt="ClassicalExN3" width="80%" style="border: 2px solid white; border-radius: 8px;">
+  <img src="./assets/ExempleClassical3Initial.png" alt="ClassicalExN3" width="80%" border="2">
 </p>
 
 **Response (200 OK, ~3 seconds):**
 
 <p align="center">
-  <img src="./assets/ExempleClassical3After.png" alt="ClassicalExN3-2" width="85%" style="border: 2px solid white; border-radius: 8px;">
+  <img src="./assets/ExempleClassical3After.png" alt="ClassicalExN3-2" width="85%" border="2">
 </p>
 
 ### Quantum Example (N=5, async QAOA on Braket SV1)
 
 <p align="center">
-  <img src="./assets/ExempleQuantumInitial.png" alt="QuantumInitial" width="80%" style="border: 2px solid white; border-radius: 8px;">
+  <img src="./assets/ExempleQuantumInitial.png" alt="QuantumInitial" width="80%" border="2">
 </p>
 
 **Submit Response (202 Accepted):**
 
 <p align="center">
-  <img src="./assets/QuantumLoading.png" alt="QuantumLoading" width="80%" style="border: 2px solid white; border-radius: 8px;">
+  <img src="./assets/QuantumLoading.png" alt="QuantumLoading" width="80%" border="2">
 </p>
 
 **Poll Response (200 OK, ~90 seconds later):**
 
 <p align="center">
-  <img src="./assets/ExempleQuantumAfter.png" alt="QuantumFinal" width="85%" style="border: 2px solid white; border-radius: 8px;">
+  <img src="./assets/ExempleQuantumAfter.png" alt="QuantumFinal" width="85%" border="2">
 </p>
 
 ---
