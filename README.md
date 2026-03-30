@@ -1,7 +1,9 @@
-# Optimize Cyber Incident Response
+# Quantum-Ready Incident Response Optimization on AWS
 ### Assign the right analyst to the right threat
 
-> **A fully automated AWS system that helps a bank respond to multiple cyber threats at once. It uses advanced quantum computing to assign security analysts to incidents in the most effective way, reducing potential financial losses. At the same time, it generates clear, real-time executive summaries using AI, so decision-makers immediately understand the situation.**
+> **A production-style AWS system that combines classical optimization, quantum algorithms (QAOA), and AI to minimize financial impact during cyber incidents.**
+
+**Why quantum?** Not to replace classical methods today, but to prepare for optimization problems that grow beyond what classical algorithms can solve efficiently.
 
 ---
 
@@ -43,7 +45,7 @@ Because each analyst has specialized expertise and each threat carries a differe
 The Assignment Problem:
 
            Ransomware  Data Exfil  Phishing  SQL Inject  DDoS
-Sarah       $72,000     $95,000     $98,000     $75,000    $37,000   ← Sarah on SQl Injection
+Sarah       $72,000     $95,000     $98,000     $75,000    $37,000   ← Sarah on SQL Injection
 Marc       $112,000     $31,000     $67,000     $99,000    $49,000   ← Marc on Data Exfiltration
 David       $56,000     $65,000    $111,000    $106,000    $34,000   ← David on Ransomware
 Lisa        $61,000    $120,000     $28,000     $77,000   $115,000   ← Lisa on Phishing
@@ -67,26 +69,35 @@ This system finds that optimal assignment, every time, with mathematical guarant
 Breach Impact Cost = Hourly Financial Loss × Hours to Mitigate
 ```
 
-Each cell in the N×N cost matrix represents the total dollar cost if a specific analyst handles a specific threat. A network specialist resolves a ransomware incident in 2 hours; an endpoint analyst takes 3 hours -- the difference is **$70,000 in additional breach liability**.
+Each cell in the N×N cost matrix represents the total dollar cost if a specific analyst handles a specific threat. A network specialist resolves a ransomware incident in 2 hours; an endpoint analyst takes 3 hours -- the difference is **$20,000 in additional breach liability**.
 
 ### The Scale Problem
 
-The number of valid analyst-to-threat assignments grows as **N! (N factorial)**:
+The number of valid analyst-to-threat assignments grows as **N! (N factorial)**, which makes brute-force search infeasible beyond small sizes.
 
 | Team Size | Permutations      | Classical Time | Quantum Relevance |
 |-----------|-------------------|----------------|-------------------|
-| N = 4     | 24                | < 1ms          | None needed       |
-| N = 5     | 120               | < 1ms          | Architecture demo |
-| N = 10    | 3,628,800         | ~1 second      | QAOA starts to help |
-| N = 20    | 2.4 quintillion   | Never          | Quantum required  |
-| N = 50    | 3 × 10⁶⁴         | Heat death     | Only viable path  |
+| N = 4     | 24                | < 1ms          | Classical, instant       |
+| N = 5     | 120               | < 1ms          | Quantum architecture demo - verifiable against ground truth |
+| N = 10    | 3,628,800         | ~milliseconds      | Still fast classically with efficient solvers |
+| N = 20    | 2.4 quintillion   | Infeasible (brute-force)          | Still efficiently solvable via Hungarian algorithm (O(N³))  |
+| N = 50+   | 3 × 10⁶⁴         | Intractable (brute-force)     | Complex variants become challenging at scale  |
 
-At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical verification becomes impossible** -- QAOA is the only approach that scales. This system is built today for the infrastructure that matters tomorrow.
+The assignment problem is efficiently solvable classically at realistic scales using algorithms such as the Hungarian method. 
+
+This project uses N=5 specifically because it is small enough to **verify the quantum result against the mathematical ground truth**. This is critical for building reliable quantum systems.
+
+The goal is not to outperform classical methods on this problem today.
+
+Instead, this system demonstrates a working hybrid pipeline (classical + quantum + cloud + AI) that can be applied to much harder optimization problems such as large-scale scheduling, portfolio optimization, or supply chain coordination where classical methods either become computationally expensive or rely on approximations.
+
+In short:
+this project proves the infrastructure works today, for the optimization problems that will matter tomorrow.
 
 ### Business Impact
 
-- A financial institution running this optimizer on **one major incident per quarter** saves an estimated **$600,000-$2M annually** from avoided suboptimal assignments *<a href="https://www.ibm.com/reports/data-breach" target="_blank">IBM Cost of a Data Breach Report</a>*
-- Regulatory compliance: every assignment decision is **timestamped, auditable, and financially justified** - useful for OSFI, FFIEC, and Basel III incident response documentation
+- Based on the [IBM Cost of a Data Breach Report](https://www.ibm.com/reports/data-breach), the average breach costs **$4.4M**. Faster and optimized analyst response directly reduces exposure duration and total breach cost
+- Regulatory compliance: every assignment decision is **timestamped, auditable, and financially justified**. Useful for OSFI, FFIEC, and Basel III incident response documentation
 - CISO reporting: Bedrock generates board-level narratives automatically, eliminating 2-3 hours of post-incident communication work per event
 
 ---
@@ -105,7 +116,7 @@ At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical ve
   <img src="./assets/WebsiteLandingPage.png"
        alt="WebsiteLandingPage"
        width="80%"
-       border="2">
+       style="border: 2px solid white; border-radius: 8px;">
 </p>
 
 ### Classical Example (N=3, instant result)
@@ -113,7 +124,7 @@ At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical ve
 ---
 
 <p align="center">
-  <img src="./assets/ExempleClassical3Initial.png" alt="ClassicalExN3" width="80%" border="2">
+  <img src="./assets/ExempleClassical3Initial.png" alt="ClassicalExN3" width="80%" style="border: 2px solid white; border-radius: 8px;">
 </p>
 
 **Response (200 OK, ~3 seconds):**
@@ -121,7 +132,7 @@ At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical ve
 ---
 
 <p align="center">
-  <img src="./assets/ExempleClassical3After.png" alt="ClassicalExN3-2" width="85%" border="2">
+  <img src="./assets/ExempleClassical3After.png" alt="ClassicalExN3-2" width="85%" style="border: 2px solid white; border-radius: 8px;">
 </p>
 
 ### Quantum Example (N=5, async QAOA on Braket SV1)
@@ -129,7 +140,7 @@ At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical ve
 ---
 
 <p align="center">
-  <img src="./assets/ExempleQuantumInitial.png" alt="QuantumInitial" width="80%" border="2">
+  <img src="./assets/ExempleQuantumInitial.png" alt="QuantumInitial" width="80%" style="border: 2px solid white; border-radius: 8px;">
 </p>
 
 **Submit Response (202 Accepted):**
@@ -137,7 +148,7 @@ At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical ve
 ---
 
 <p align="center">
-  <img src="./assets/QuantumLoading.png" alt="QuantumLoading" width="80%" border="2">
+  <img src="./assets/QuantumLoading.png" alt="QuantumLoading" width="80%" style="border: 2px solid white; border-radius: 8px;">
 </p>
 
 **Poll Response (200 OK, ~90 seconds later):**
@@ -145,7 +156,7 @@ At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical ve
 ---
 
 <p align="center">
-  <img src="./assets/ExempleQuantumAfter.png" alt="QuantumFinal" width="85%" border="2">
+  <img src="./assets/ExempleQuantumAfter.png" alt="QuantumFinal" width="85%" style="border: 2px solid white; border-radius: 8px;">
 </p>
 
 ---
@@ -259,7 +270,7 @@ QAOA explores → Classical verifies → Best result returned
    (e.g., "QAOA approximation: $246,000 - 33% gap from $184,000 optimum")
 ```
 
-**Why this matters:** At N = 5 with 120 permutations, verification is instant. At N = 20 with 2.4 quintillion permutations, the classical verification is impossible - **that is precisely why we are building this quantum infrastructure today**. The approximation quality improves with better hardware, more circuit layers, and variational parameter optimization.
+**Why this design matters:** At N=5 with 120 permutations, verification is instant and free. This allows the system to be fully honest about QAOA's approximation quality. As hardware improves and circuit depth increases, that gap shrinks. The infrastructure is identical regardless.
 
 ---
 
@@ -425,19 +436,19 @@ Poll for quantum job completion.
 
 ### Near-Term (1-3 Years, Improved Quantum Hardware)
 
-- N = 10-15 analyst teams where classical brute-force becomes impractical
+- Larger SOC teams where multiple optimization approaches are being benchmarked side by side
 - Portfolio optimization - same mathematical structure as capital allocation across assets
 - Multi-cloud security orchestration - matching response playbooks to threat categories at scale
 - Supply chain matching - optimal assignment of suppliers, logistics routes, or cloud resources
 
 ### Long-Term (Quantum Advantage Era)
 
-- N = 20+ assignments with 2.4 quintillion+ permutations - only viable approach
+- Harder combinatorial problems (drug discovery, logistics at massive scale, portfolio optimization) where QAOA's architecture is genuinely competitive with classical methods
 - Real quantum hardware: one Terraform variable change routes to IonQ Aria, Rigetti Ankaa, or IBM Heron
 - Combined with quantum ML for threat classification and risk scoring
 - Industry-first quantum-native incident response platforms
 
-> **The bank that builds this infrastructure today will not rebuild from scratch when quantum advantage becomes operational - they will flip a configuration switch.**
+> ⚡ **The organizations building quantum-ready infrastructure today won't scramble when quantum computing matures. They'll flip a configuration switch.**
 
 ---
 
@@ -507,7 +518,7 @@ Poll for quantum job completion.
 ### Algorithms
 
 - **QAOA** - Quantum Approximate Optimization Algorithm (p=3 layers)
-- **Hungarian-style brute-force** - N! permutation search for classical path and quantum verification
+- **Brute-force permutation search** - N! enumeration for classical path and quantum result verification
 - **Bitstring decoding** - Most-probable measurement → valid assignment with greedy fallback for noisy results
 
 ---
@@ -515,7 +526,7 @@ Poll for quantum job completion.
 ## About
 
 **Xavier Dupuis**
-Cybersecurity Advisor - Banque Nationale du Canada (Cybsersecurity Advisor)
+Cybersecurity Advisor - Banque Nationale du Canada
 B.Eng. Cybersecurity Engineering - École Polytechnique de Montréal (Graduating 2026)
 
 **Certifications:**
@@ -529,7 +540,6 @@ B.Eng. Cybersecurity Engineering - École Polytechnique de Montréal (Graduating
 
 This deployment goes beyond standard cloud implementations, showcasing the ability to independently engineer and debug bleeding-edge AWS technologies where standard tutorials do not yet exist.
 
-The project demonstrates the ability to:
 - Design and deploy production-grade hybrid quantum-classical infrastructure on AWS from scratch
 - Debug novel technical problems across many AWS services simultaneously under real deployment conditions
 - Apply quantum computing algorithms (QAOA) to a real-world cybersecurity optimization problem
