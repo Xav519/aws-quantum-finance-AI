@@ -1,5 +1,5 @@
-# SOC: Optimal Threat Dispatcher
-### Cyber Breach Liability Minimization via Hybrid Quantum-Classical Computing on AWS
+# Optimize Cyber Incident Response
+### Assign the right analyst to the right threat
 
 > **A fully automated AWS system that helps a bank respond to multiple cyber threats at once. It uses advanced quantum computing to assign security analysts to incidents in the most effective way, reducing potential financial losses. At the same time, it generates clear, real-time executive summaries using AI, so decision-makers immediately understand the situation.**
 
