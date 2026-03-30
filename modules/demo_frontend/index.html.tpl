@@ -3,27 +3,29 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOC: Optimal Threat Dispatcher</title>
+  <title>Optimize Cyber Incident Response</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:        #04070f;
-      --surface:   #080e1a;
+      --bg:        #0b1220;
+      --surface:   #111827;
       --surface2:  #0b1220;
-      --surface3:  #0f1929;
-      --border:    #152035;
-      --border2:   #1e3050;
-      --text:      #f0f6ff;
-      --muted:     #ccdff2;
-      --muted2:    #a8c4de;
-      --classical: #00d68f;
-      --classical2:#004d33;
-      --quantum:   #a855f7;
-      --quantum2:  #3b1060;
-      --accent:    #38b2f8;
-      --accent2:   #0d3a5c;
-      --danger:    #ff4060;
-      --danger2:   #4a0a14;
+      --surface3:  #374151;
+      --border:    #1f2937;
+      --border2:   #374151;
+      --text:      #f9fafb;
+      --muted:     #9ca3af;
+      --muted2:    #6b7280;
+      --optimize: #2ea94a;
+      --generateBtn:  #0b1220;
+      --classical: #10b981;
+      --classical2: #065f46;
+      --quantum:   #8b5cf6;
+      --quantum2:  #4c1d95;
+      --accent:    #3b82f6;
+      --accent2:   #1e40af;
+      --danger:    #ef4444;
+      --danger2:   #7f1d1d;
       --gold:      #f6c343;
       --gold2:     #4a3500;
       --glow-c:    rgba(0, 214, 143, 0.12);
@@ -143,12 +145,10 @@
     }
 
     header h1 .soc  {
-      color: var(--danger);
-      text-shadow: 0 0 20px rgba(255, 64, 96, 0.4);
+      color: var(--optimize);
     }
     header h1 .opt  {
       color: var(--quantum);
-      text-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
     }
 
     .header-sub {
@@ -298,14 +298,12 @@
       background: rgba(0, 214, 143, 0.07);
       color: var(--classical);
       border: 1px solid rgba(0, 214, 143, 0.3);
-      box-shadow: 0 0 16px rgba(0, 214, 143, 0.05);
     }
 
     .mode-badge.quantum {
       background: rgba(168, 85, 247, 0.08);
       color: var(--quantum);
       border: 1px solid rgba(168, 85, 247, 0.3);
-      box-shadow: 0 0 16px rgba(168, 85, 247, 0.08);
     }
 
     .mode-badge .dot {
@@ -518,9 +516,9 @@
     button:disabled { opacity: 0.35; cursor: not-allowed; }
 
     #btn-generate {
-      background: var(--accent2);
+      background: var(--generateBtn);
       color: var(--accent);
-      border-color: rgba(56, 178, 248, 0.3);
+      border-color: rgba(95, 95, 95, 0.57);
     }
 
     #btn-generate:hover:not(:disabled) {
@@ -745,13 +743,12 @@
 <!-- ── Header ── -->
 <header>
   <h1>
-    <span class="soc">SOC:</span>
-    Optimal Threat
-    <span class="opt">Dispatcher</span>
+    <span class="soc">Optimize</span>
+    Cyber Incident
+    <span class="opt">Response</span>
   </h1>
   <p class="header-sub">
-    Security Operations Center &nbsp;·&nbsp; Analyst-to-Threat Assignment &nbsp;·&nbsp;
-    AWS Braket SV1 + Amazon Bedrock &nbsp;·&nbsp; Xavier Dupuis
+    Minimize costs with optimal analyst assignments &nbsp;·&nbsp; Xavier Dupuis
   </p>
 </header>
 
@@ -759,16 +756,16 @@
 <div class="explainer">
   <div class="explainer-block problem">
     <strong class="label">The Problem</strong>
-    When multiple threats hit at once, every second costs money. Simply assigning the next available analyst is a mistake that creates <strong class="kw">hidden bottlenecks</strong> and inadvertently increases the bank's <strong class="kw">total financial exposure</strong>.
+    When multiple cyber threats happen at the same time, choosing who handles what is hard and mistakes <strong>cost money</strong>.
   </div>
   <div class="explainer-block calculus">
-    <strong class="label">The Calculus</strong> <span class="formula-stage"><span class="formula">Total Liability = Hourly Loss × Time to Mitigate</span></span>
+    <strong class="label">The Solution</strong>
     <br>
-    We map specialist proficiency against specific threats. By choosing the analyst who resolves a leak in <strong class="kw">2 hours rather than 3</strong>, the model prevents <strong class="kw">hundreds of thousands of dollars</strong> in unnecessary breach costs.
+    This system calculates the best assignment of analysts to threats to <strong>minimize</strong> total financial loss.
   </div>
   <div class="explainer-block goal">
-    <strong class="label">The Goal</strong>
-    To identify the <strong class="kw">single best combination</strong> that saves the bank the most money. We are testing this today with <strong class="kw">Classical and Quantum algorithms</strong>, ensuring that as cyber risks scale and become more sophisticated, the bank always maintains the <strong class="kw">mathematical advantage</strong>.
+    <strong class="label">How</strong>
+    It compares all possible combinations using <strong>classical</strong> or <strong>quantum</strong> algorithms.
   </div>
 </div>
 
@@ -829,7 +826,7 @@
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const API_URL   = "${api_url}";
+const API_URL   = "https://8gg49mhree.execute-api.us-east-1.amazonaws.com/";
 const THRESHOLD = 4;
 
 const ANALYST_NAMES = {
