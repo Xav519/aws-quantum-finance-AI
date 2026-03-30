@@ -52,10 +52,10 @@ Chen       $107,000    $101,000     $10,000     $81,000    $19,000   ← Chen on
 Greedy (intuition-based) assignment:  $233,000 total exposure
 Optimal assignment:                   $209,000 total exposure
                                        ────────────────────────
-Savings from optimization:            $24,000 total saving for this situation
+Savings from optimization:            $24,000
 ```
 
-This system finds that optimal assignment in seconds, every time, with mathematical guarantees.
+This system finds that optimal assignment, every time, with mathematical guarantees.
 
 ---
 
@@ -67,7 +67,7 @@ This system finds that optimal assignment in seconds, every time, with mathemati
 Breach Impact Cost = Hourly Financial Loss × Hours to Mitigate
 ```
 
-Each cell in the N×N cost matrix represents the total dollar cost if a specific analyst handles a specific threat. A network specialist resolves a ransomware incident in 2 hours; an endpoint analyst takes 9 hours — the difference is **$70,000 in additional breach liability**.
+Each cell in the N×N cost matrix represents the total dollar cost if a specific analyst handles a specific threat. A network specialist resolves a ransomware incident in 2 hours; an endpoint analyst takes 3 hours -- the difference is **$70,000 in additional breach liability**.
 
 ### The Scale Problem
 
@@ -81,11 +81,11 @@ The number of valid analyst-to-threat assignments grows as **N! (N factorial)**:
 | N = 20    | 2.4 quintillion   | Never          | Quantum required  |
 | N = 50    | 3 × 10⁶⁴         | Heat death     | Only viable path  |
 
-At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical verification becomes impossible** — QAOA is the only approach that scales. This system is built today for the infrastructure that matters tomorrow.
+At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical verification becomes impossible** -- QAOA is the only approach that scales. This system is built today for the infrastructure that matters tomorrow.
 
 ### Business Impact
 
-- A financial institution running this optimizer on **one major incident per quarter** saves an estimated **$600,000–$2M annually** from avoided suboptimal assignments
+- A financial institution running this optimizer on **one major incident per quarter** saves an estimated **$600,000–$2M annually** from avoided suboptimal assignments *<a href="https://www.ibm.com/reports/data-breach" target="_blank">IBM Cost of a Data Breach Report</a>*
 - Regulatory compliance: every assignment decision is **timestamped, auditable, and financially justified** — useful for OSFI, FFIEC, and Basel III incident response documentation
 - CISO reporting: Bedrock generates board-level narratives automatically, eliminating 2–3 hours of post-incident communication work per event
 
