@@ -441,7 +441,12 @@
       font-size: 0.66rem;
     }
 
-    td { border: 1px solid var(--border); padding: 2px; }
+    td {
+      border: 1px solid var(--border);
+      padding: 2px;
+      text-align: center;        /* horizontal center */
+      vertical-align: middle;    /* vertical center */
+    }
 
     td.row-header {
       background: var(--surface2);
