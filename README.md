@@ -100,37 +100,37 @@ At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical ve
 ### Website landing page
 
 <p align="center">
-  <img src="./assets/WebsiteLandingPage.png" alt="WebsiteLandingPage" width="70%">
+  <img src="./assets/WebsiteLandingPage.png" alt="WebsiteLandingPage" width="80%">
 </p>
 
 ### Classical Example (N=3, instant result)
 
 <p align="center">
-  <img src="./assets/ExempleClassical3Initial.png" alt="ClassicalExN3" width="70%">
+  <img src="./assets/ExempleClassical3Initial.png" alt="ClassicalExN3" width="80%">
 </p>
 
 **Response (200 OK, ~3 seconds):**
 
 <p align="center">
-  <img src="./assets/ExempleClassical3After.png" alt="ClassicalExN3-2" width="80%">
+  <img src="./assets/ExempleClassical3After.png" alt="ClassicalExN3-2" width="85%">
 </p>
 
 ### Quantum Example (N=5, async QAOA on Braket SV1)
 
 <p align="center">
-  <img src="./assets/ExempleQuantumInitial.png" alt="QuantumInitial" width="70%">
+  <img src="./assets/ExempleQuantumInitial.png" alt="QuantumInitial" width="80%">
 </p>
 
 **Submit Response (202 Accepted):**
 
 <p align="center">
-  <img src="./assets/QuantumLoading.png" alt="QuantumLoading" width="70%">
+  <img src="./assets/QuantumLoading.png" alt="QuantumLoading" width="80%">
 </p>
 
 **Poll Response (200 OK, ~90 seconds later):**
 
 <p align="center">
-  <img src="./assets/ExempleQuantumAfter.png" alt="QuantumFinal" width="80%">
+  <img src="./assets/ExempleQuantumAfter.png" alt="QuantumFinal" width="85%">
 </p>
 
 ---
