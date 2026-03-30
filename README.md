@@ -99,91 +99,39 @@ At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical ve
 
 ### Website landing page
 
+<p align="center">
+  <img src="./assets/WebsiteLandingPage.png" alt="WebsiteLandingPage" width="70%">
+</p>
+
 ### Classical Example (N=3, instant result)
 
-```powershell
-$body = @{
-    analysts    = @("Alice", "Bob", "Carol")
-    alerts      = @("SQL Injection", "DDoS", "Ransomware")
-    cost_matrix = @(@(500,800,1200), @(900,400,700), @(1100,600,300))
-} | ConvertTo-Json
-
-Invoke-RestMethod -Method POST `
-  -Uri "https://{api-id}.execute-api.us-east-1.amazonaws.com/optimize" `
-  -ContentType "application/json" `
-  -Body $body
-```
+<p align="center">
+  <img src="./assets/ExempleClassical3Initial.png" alt="ClassicalExN3" width="70%">
+</p>
 
 **Response (200 OK, ~3 seconds):**
-```json
-{
-  "job_id": "7a922bc6-5eca-41a6-b20f-88101a241dc1",
-  "status": "COMPLETE",
-  "method": "CLASSICAL",
-  "assignment": [
-    {"analyst": "Alice", "alert": "SQL Injection", "cost": 500},
-    {"analyst": "Bob",   "alert": "DDoS",          "cost": 400},
-    {"analyst": "Carol", "alert": "Ransomware",     "cost": 300}
-  ],
-  "total_cost": 1200,
-  "narrative": "Our Security Operations Center used a comprehensive algorithmic approach..."
-}
-```
+
+<p align="center">
+  <img src="./assets/ExempleClassical3After.png" alt="ClassicalExN3-2" width="80%">
+</p>
 
 ### Quantum Example (N=5, async QAOA on Braket SV1)
 
-```powershell
-# 1. Submit the job
-$body = @{
-    analysts    = @("Alice", "Bob", "Carol", "Dave", "Eve")
-    alerts      = @("SQL Injection", "DDoS", "Ransomware", "Phishing", "Zero-Day")
-    cost_matrix = @(
-        @(500, 800, 1200, 900, 600),
-        @(900, 400,  700, 500, 800),
-        @(1100,600,  300, 700, 900),
-        @(700, 500,  800, 400, 1000),
-        @(600, 900,  500, 800, 350)
-    )
-} | ConvertTo-Json -Depth 5
-
-$result = Invoke-RestMethod -Method POST `
-  -Uri "https://{api-id}.execute-api.us-east-1.amazonaws.com/optimize" `
-  -ContentType "application/json" `
-  -Body $body
-
-# 2. Poll for completion (Braket SV1 takes ~90 seconds)
-Invoke-RestMethod -Uri "https://{api-id}.execute-api.us-east-1.amazonaws.com/jobs/$($result.job_id)"
-```
+<p align="center">
+  <img src="./assets/ExempleQuantumInitial.png" alt="QuantumInitial" width="70%">
+</p>
 
 **Submit Response (202 Accepted):**
-```json
-{
-  "job_id": "54e16b58-5fae-4e64-9508-7e405eda5084",
-  "status": "PENDING",
-  "method": "QUANTUM",
-  "qubits": 25,
-  "shots": 1000,
-  "message": "N=5 exceeds classical threshold (4). QAOA circuit (25 qubits, 1000 shots) submitted to Amazon Braket SV1."
-}
-```
+
+<p align="center">
+  <img src="./assets/QuantumLoading.png" alt="QuantumLoading" width="70%">
+</p>
 
 **Poll Response (200 OK, ~90 seconds later):**
-```json
-{
-  "job_id": "54e16b58-5fae-4e64-9508-7e405eda5084",
-  "status": "COMPLETE",
-  "method": "QUANTUM",
-  "assignment": [
-    {"analyst": "Alice", "alert": "DDoS Attack",     "cost": 16000},
-    {"analyst": "Bob",   "alert": "Data Exfil",      "cost": 29000},
-    {"analyst": "David", "alert": "Ransomware",      "cost": 54000},
-    {"analyst": "Lisa",  "alert": "Phishing",        "cost": 68000},
-    {"analyst": "Chen",  "alert": "SQL Injection",   "cost": 79000}
-  ],
-  "total_cost": 246000,
-  "narrative": "Our cybersecurity team leveraged quantum-inspired optimization technology..."
-}
-```
+
+<p align="center">
+  <img src="./assets/ExempleQuantumAfter.png" alt="QuantumFinal" width="80%">
+</p>
 
 ---
 
