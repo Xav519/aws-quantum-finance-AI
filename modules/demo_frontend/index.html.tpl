@@ -784,7 +784,6 @@
     </select>
   </div>
   <div id="mode-badge" class="mode-badge classical">
-    <span class="dot"></span>
     <span id="mode-label">Classical Brute-Force</span>
   </div>
 </div>
@@ -818,7 +817,7 @@
 <div id="quantum-status">
   <div class="spinner"></div>
   <div class="qs-details">
-    <div class="qs-title">⚛ QAOA Circuit Running on Amazon Braket SV1…</div>
+    <div class="qs-title">QAOA Circuit Running on Amazon Braket SV1…</div>
     <div class="qs-sub" id="qs-info"></div>
   </div>
 </div>

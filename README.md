@@ -1,7 +1,7 @@
 # SOC: Optimal Threat Dispatcher
 ### Cyber Breach Liability Minimization via Hybrid Quantum-Classical Computing on AWS
 
-> **A production-grade, fully Terraform-provisioned AWS system that uses the Quantum Approximate Optimization Algorithm (QAOA) on Amazon Braket SV1 to optimally assign SOC analysts to active cyber threats - minimizing a bank's total financial exposure from concurrent security incidents. Executive narratives are generated in real time by Claude 4.5 Haiku via Amazon Bedrock.**
+> **A fully automated AWS system that helps a bank respond to multiple cyber threats at once. It uses advanced quantum computing to assign security analysts to incidents in the most effective way, reducing potential financial losses. At the same time, it generates clear, real-time executive summaries using AI, so decision-makers immediately understand the situation.**
 
 ---
 
@@ -85,9 +85,9 @@ At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical ve
 
 ### Business Impact
 
-- A financial institution running this optimizer on **one major incident per quarter** saves an estimated **$600,000–$2M annually** from avoided suboptimal assignments *<a href="https://www.ibm.com/reports/data-breach" target="_blank">IBM Cost of a Data Breach Report</a>*
-- Regulatory compliance: every assignment decision is **timestamped, auditable, and financially justified** — useful for OSFI, FFIEC, and Basel III incident response documentation
-- CISO reporting: Bedrock generates board-level narratives automatically, eliminating 2–3 hours of post-incident communication work per event
+- A financial institution running this optimizer on **one major incident per quarter** saves an estimated **$600,000-$2M annually** from avoided suboptimal assignments *<a href="https://www.ibm.com/reports/data-breach" target="_blank">IBM Cost of a Data Breach Report</a>*
+- Regulatory compliance: every assignment decision is **timestamped, auditable, and financially justified** - useful for OSFI, FFIEC, and Basel III incident response documentation
+- CISO reporting: Bedrock generates board-level narratives automatically, eliminating 2-3 hours of post-incident communication work per event
 
 ---
 
@@ -96,6 +96,8 @@ At N = 5, we can verify QAOA against brute force. At N = 20+, **the classical ve
 **Frontend:** `http://quantum-finance-dev-demo-frontend.s3-website-us-east-1.amazonaws.com`
 
 **API Base:** `https://{api-id}.execute-api.us-east-1.amazonaws.com/`
+
+### Website landing page
 
 ### Classical Example (N=3, instant result)
 
@@ -188,14 +190,14 @@ Invoke-RestMethod -Uri "https://{api-id}.execute-api.us-east-1.amazonaws.com/job
 ## 🗺️ Architecture Visualization
 
 <p align="center">
-  <img src="./assets/ArchitectureDiagram.drawio.png" alt="Project Architecture" width="70%">
+  <img src="./assets/ArchitectureDiagram.drawio.png" alt="Project Architecture" width="85%">
 </p>
 
 ---
 
 ## The Two Paths: Classical vs Quantum
 
-### Classical Path (N ≤ 4) — Guaranteed Optimum
+### Classical Path (N ≤ 4) - Guaranteed Optimum
 
 ```python
 import itertools
@@ -210,12 +212,12 @@ def brute_force(cost_matrix):
     return best_perm, best_cost
 ```
 
-- Evaluates every permutation — mathematically **guarantees** the global optimum
+- Evaluates every permutation - mathematically **guarantees** the global optimum
 - N=4 evaluates 24 combinations in microseconds
 - Synchronous: result returned in the HTTP response
 - Bedrock generates the board narrative in the same call
 
-### Quantum Path (N = 5) — QAOA on Amazon Braket SV1
+### Quantum Path (N = 5) - QAOA on Amazon Braket SV1
 
 - Submits a 25-qubit QAOA circuit to Braket SV1
 - Returns `202 PENDING` immediately with a `job_id`
@@ -227,10 +229,10 @@ def brute_force(cost_matrix):
 
 ## The QAOA Quantum Circuit
 
-The circuit is built in **Braket JAQCD (JSON IR)** format — the native wire format for Braket SV1:
+The circuit is built in **Braket JAQCD (JSON IR)** format - the native wire format for Braket SV1:
 
 ```
-Qubits: 25 (N² = 5² encoding — one qubit per analyst-alert pair)
+Qubits: 25 (N² = 5² encoding - one qubit per analyst-alert pair)
 Layers: p = 3 QAOA layers
 Shots:  1,000 measurement repetitions
 
@@ -281,7 +283,7 @@ Layer structure per QAOA round:
 
 ## Hybrid Verification Strategy
 
-QAOA is an **approximation algorithm** — it finds good solutions, not always the best. This system takes a production-honest approach:
+QAOA is an **approximation algorithm** - it finds good solutions, not always the best. This system takes a production-honest approach:
 
 ```
 QAOA explores → Classical verifies → Best result returned
@@ -291,10 +293,10 @@ QAOA explores → Classical verifies → Best result returned
 3. Classical brute-force checks all N! permutations (trivial for N≤5)
 4. The verified global optimum is returned to the user
 5. The Bedrock narrative includes the QAOA approximation gap %
-   (e.g., "QAOA approximation: $246,000 — 33% gap from $184,000 optimum")
+   (e.g., "QAOA approximation: $246,000 - 33% gap from $184,000 optimum")
 ```
 
-**Why this matters:** At N = 5 with 120 permutations, verification is instant. At N = 20 with 2.4 quintillion permutations, the classical verification is impossible — **that is precisely why we are building this quantum infrastructure today**. The approximation quality improves with better hardware, more circuit layers, and variational parameter optimization.
+**Why this matters:** At N = 5 with 120 permutations, verification is instant. At N = 20 with 2.4 quintillion permutations, the classical verification is impossible - **that is precisely why we are building this quantum infrastructure today**. The approximation quality improves with better hardware, more circuit layers, and variational parameter optimization.
 
 ---
 
@@ -304,13 +306,13 @@ QAOA explores → Classical verifies → Best result returned
 
 | Decision | Rationale |
 |---|---|
-| DynamoDB GSI on `braket_task_arn` | EventBridge completion handler needs to find the job by task ARN — O(1) GSI query vs O(N) table scan |
-| `InvocationType="Event"` for Braket Lambda | Braket tasks are async — fire-and-forget avoids orchestrator timeout (90s < Braket Lambda's 300s) |
+| DynamoDB GSI on `braket_task_arn` | EventBridge completion handler needs to find the job by task ARN - O(1) GSI query vs O(N) table scan |
+| `InvocationType="Event"` for Braket Lambda | Braket tasks are async - fire-and-forget avoids orchestrator timeout (90s < Braket Lambda's 300s) |
 | `amazon-braket-*` bucket naming | AWS Braket enforces this naming requirement at `CreateQuantumTask` time |
 | JAQCD over OpenQASM | Braket SV1 doesn't support `include` statements or all OpenQASM 2.0/3.0 gate names |
 | Inference profile ARN | Claude 4.x models require `us.anthropic.*` cross-region inference profile format |
 | Hybrid QAOA + brute-force | Guarantees optimal result regardless of QAOA approximation quality |
-| TTL on DynamoDB items | Auto-cleanup at 7 days — no maintenance required for demo jobs |
+| TTL on DynamoDB items | Auto-cleanup at 7 days - no maintenance required for demo jobs |
 
 ---
 
@@ -448,74 +450,71 @@ Poll for quantum job completion.
 
 ## Real-World Use Cases
 
-### Today (Classical Path — Production Ready)
+### Today (Classical Path - Production Ready)
 
 | Use Case | Value |
 |---|---|
 | Concurrent incident triage | Optimal analyst-to-threat assignment in < 3 seconds, guaranteed global optimum |
-| CISO board reporting | Auto-generated executive narrative — no manual translation from technical to business language |
+| CISO board reporting | Auto-generated executive narrative - no manual translation from technical to business language |
 | SOC capacity planning | Quantify the ROI of analyst training: if training reduces a cell from $80k to $30k, the training pays for itself in one incident |
 | Regulatory documentation | Timestamped, auditable, financially-justified assignment decisions for OSFI / FFIEC compliance |
 | Shift handover briefings | Instant re-optimization when threat priorities change between analyst shifts |
 
-### Near-Term (1–3 Years, Improved Quantum Hardware)
+### Near-Term (1-3 Years, Improved Quantum Hardware)
 
-- N = 10–15 analyst teams where classical brute-force becomes impractical
-- Portfolio optimization — same mathematical structure as capital allocation across assets
-- Multi-cloud security orchestration — matching response playbooks to threat categories at scale
-- Supply chain matching — optimal assignment of suppliers, logistics routes, or cloud resources
+- N = 10-15 analyst teams where classical brute-force becomes impractical
+- Portfolio optimization - same mathematical structure as capital allocation across assets
+- Multi-cloud security orchestration - matching response playbooks to threat categories at scale
+- Supply chain matching - optimal assignment of suppliers, logistics routes, or cloud resources
 
 ### Long-Term (Quantum Advantage Era)
 
-- N = 20+ assignments with 2.4 quintillion+ permutations — only viable approach
+- N = 20+ assignments with 2.4 quintillion+ permutations - only viable approach
 - Real quantum hardware: one Terraform variable change routes to IonQ Aria, Rigetti Ankaa, or IBM Heron
 - Combined with quantum ML for threat classification and risk scoring
 - Industry-first quantum-native incident response platforms
 
-> **The bank that builds this infrastructure today will not rebuild from scratch when quantum advantage becomes operational — they will flip a configuration switch.**
+> **The bank that builds this infrastructure today will not rebuild from scratch when quantum advantage becomes operational - they will flip a configuration switch.**
 
 ---
 
 ## Engineering Challenges Solved
 
-> This section documents the 20+ real production issues hit and resolved while building against live AWS infrastructure. These are not theoretical exercises — every error below was encountered during actual deployment and debugged independently.
+> This section documents some of the real production issues hit and resolved while building the AWS infrastructure. These are not theoretical exercises - every error below was encountered during actual deployment and debugged independently.
 
 ### Critical Issues
 
 | # | Issue | Root Cause | Fix |
 |---|---|---|---|
-| 1 | `AccessDeniedException` on Bedrock `InvokeModel` | IAM policy had old Claude 3 Haiku ARN; Lambdas called Haiku 4.5 | Updated both policies to use `inference-profile` ARN format: `us.anthropic.claude-3-5-haiku-20241022-v1:0` |
-| 2 | `ValidationException: include statements not supported` | OpenQASM 3.0 `include "stdgates.inc"` rejected by Braket SV1 | Rewrote circuit builder from OpenQASM string generation to JAQCD JSON IR format |
-| 3 | `ValidationException: cx gate not supported` | OpenQASM 2.0 `cx` gate name rejected by Braket | Switched to JAQCD; all gates defined as `{"type": "cnot", "control": k1, "target": k2}` |
-| 4 | `ValidationException: Provided action is not valid` | JAQCD gate objects used `"gate"` field name — correct field is `"type"` | Verified schema against `amazon-braket-schemas-python` SDK; rebuilt all gate helpers |
-| 5 | `ValidationException: results field invalid` | Used `[{"type": "measurement", "targets": [...]}]` in results — measurement is implicit in JAQCD | Changed `results` to `[]`; JAQCD measurement is automatic when shots > 0 |
-| 6 | `ValidationException: paradigmParameters is missing` | `CreateQuantumTask` requires `deviceParameters` JSON with `GateModelSimulatorDeviceParameters` | Added `deviceParameters` with `paradigmParameters.qubitCount` and `disableQubitRewiring` |
-| 7 | `ValidationException: bucket must start with 'amazon-braket-'` | Braket enforces bucket naming at `CreateQuantumTask` time regardless of IAM | Renamed bucket from `{prefix}-braket-results` to `amazon-braket-{prefix}` in storage module |
-| 8 | `ResourceNotFoundException` on `InvokeModel` | Bedrock Haiku 4.5 requires use-case form submission for new accounts | Submitted use case form; switched to Claude 4.5 Haiku as production model |
-| 9 | `JSONDecodeError` reading Braket Lambda response | `InvocationType="Event"` returns empty payload — old code called `json.loads(resp["Payload"].read())` | Removed payload read from quantum path; `Event` invocations have no response body |
-| 10 | `ValidationException: qubitCount must be between 1 and 34` | N=6 requires 6²=36 qubits; SV1 max is 34 | Reduced max N from 6 to 5; updated orchestrator validation and frontend dropdown |
+| 1 | `ValidationException: include statements not supported` | OpenQASM 3.0 `include "stdgates.inc"` rejected by Braket SV1 | Rewrote circuit builder from OpenQASM string generation to JAQCD JSON IR format |
+| 2 | `ValidationException: cx gate not supported` | OpenQASM 2.0 `cx` gate name rejected by Braket | Switched to JAQCD; all gates defined as `{"type": "cnot", "control": k1, "target": k2}` |
+| 3 | `ValidationException: Provided action is not valid` | JAQCD gate objects used `"gate"` field name - correct field is `"type"` | Verified schema against `amazon-braket-schemas-python` SDK; rebuilt all gate helpers |
+| 4 | `ValidationException: results field invalid` | Used `[{"type": "measurement", "targets": [...]}]` in results - measurement is implicit in JAQCD | Changed `results` to `[]`; JAQCD measurement is automatic when shots > 0 |
+| 5 | `ValidationException: paradigmParameters is missing` | `CreateQuantumTask` requires `deviceParameters` JSON with `GateModelSimulatorDeviceParameters` | Added `deviceParameters` with `paradigmParameters.qubitCount` and `disableQubitRewiring` |
+| 6 | `ValidationException: bucket must start with 'amazon-braket-'` | Braket enforces bucket naming at `CreateQuantumTask` time regardless of IAM | Renamed bucket from `{prefix}-braket-results` to `amazon-braket-{prefix}` in storage module |
+| 7 | `ResourceNotFoundException` on `InvokeModel` | Bedrock Haiku 4.5 requires use-case form submission for new accounts | Submitted use case form; switched to Claude 4.5 Haiku as production model |
+| 8 | `JSONDecodeError` reading Braket Lambda response | `InvocationType="Event"` returns empty payload - old code called `json.loads(resp["Payload"].read())` | Removed payload read from quantum path; `Event` invocations have no response body |
+| 9 | `ValidationException: qubitCount must be between 1 and 34` | N=6 requires 6²=36 qubits; SV1 max is 34 | Reduced max N from 6 to 5; updated orchestrator validation and frontend dropdown |
 
 ### Infrastructure Issues
 
 | # | Issue | Fix |
 |---|---|---|
-| 11 | HCL syntax error in orchestrator module — `tags` nested inside `environment` block | Fixed missing closing brace; `environment { variables = { ... } }` was unclosed |
-| 12 | `module.storage is object, has no attribute dynamodb_table_name` | Missing `outputs.tf` files across all 7 modules | Created `outputs.tf` for every module with correct resource references |
-| 13 | CloudWatch dashboard `400 InvalidParameterInput — region required` | All 3 dashboard widget `properties` blocks missing `region` field | Added `region = var.aws_region` to every widget; passed `aws_region` through module variables |
-| 14 | `messaging/outputs.tf` referenced `braket_job_complete` — resource is `braket_task_complete` | Fixed resource reference name to match actual `aws_cloudwatch_event_rule` declaration |
-| 15 | DynamoDB full-table scan on `braket_task_arn` — O(N) cost at scale | Added GSI on `braket_task_arn`; replaced `table.scan()` with `table.query(IndexName=...)` |
-| 16 | `templatefile()` crashed on JS `${n}` — treated as Terraform variable | Escaped all JS template literals from `${...}` to `$${...}` in `.tpl` file |
-| 17 | `AWSServiceRoleForAmazonBraket` did not exist | One-time console step: Braket → Permissions → Create service role |
+| 10 | CloudWatch dashboard `400 InvalidParameterInput - region required` | All 3 dashboard widget `properties` blocks missing `region` field | Added `region = var.aws_region` to every widget; passed `aws_region` through module variables |
+| 11 | `messaging/outputs.tf` referenced `braket_job_complete` - resource is `braket_task_complete` | Fixed resource reference name to match actual `aws_cloudwatch_event_rule` declaration |
+| 12 | DynamoDB full-table scan on `braket_task_arn` - O(N) cost at scale | Added GSI on `braket_task_arn`; replaced `table.scan()` with `table.query(IndexName=...)` |
+| 13 | `templatefile()` crashed on JS `${n}` - treated as Terraform variable | Escaped all JS template literals from `${...}` to `$${...}` in `.tpl` file |
+| 14 | `AWSServiceRoleForAmazonBraket` did not exist | One-time console step: Braket → Permissions → Create service role |
 
 ### Application Issues
 
 | # | Issue | Fix |
 |---|---|---|
-| 18 | `get_job` returned `file: null` for all quantum results | Handler read `item.get("files", [])` but DynamoDB stores `alerts` | Replaced `files` → `alerts` key; updated pair dict from `"file"` to `"alert"` |
-| 19 | Frontend displayed `$NaN` for per-pair breach costs in quantum results | Quantum path stores assignment as index array — `cost` field not computed on retrieval | Updated `get_job` to load `cost_matrix` from DynamoDB and compute `cost_matrix[i][assignment_indices[i]]` |
-| 20 | Bedrock narrative showed `# Board Presentation:` as literal text in UI | Prompt did not prohibit markdown — Claude added headers by default | Added explicit `no markdown, no headers, no bullet points` instruction to Bedrock prompt |
-| 21 | QAOA returned $390k vs true optimum of $184k (112% gap) | p=1 layer insufficient for reliable convergence | Increased to p=3 layers; added classical brute-force verification in `handle_complete` — always returns global optimum |
-| 22 | Orchestrator timeout (90s) on quantum path | `InvocationType="RequestResponse"` waited up to 300s for Braket Lambda | Changed to `InvocationType="Event"`; orchestrator returns 202 immediately |
+| 15 | `get_job` returned `file: null` for all quantum results | Handler read `item.get("files", [])` but DynamoDB stores `alerts` | Replaced `files` → `alerts` key; updated pair dict from `"file"` to `"alert"` |
+| 16 | Frontend displayed `$NaN` for per-pair breach costs in quantum results | Quantum path stores assignment as index array - `cost` field not computed on retrieval | Updated `get_job` to load `cost_matrix` from DynamoDB and compute `cost_matrix[i][assignment_indices[i]]` |
+| 17 | Bedrock narrative showed `# Board Presentation:` as literal text in UI | Prompt did not prohibit markdown - Claude added headers by default | Added explicit `no markdown, no headers, no bullet points` instruction to Bedrock prompt |
+| 18 | QAOA returned $390k vs true optimum of $184k (112% gap) | p=1 layer insufficient for reliable convergence | Increased to p=3 layers; added classical brute-force verification in `handle_complete` - always returns global optimum |
+| 19 | Orchestrator timeout (90s) on quantum path | `InvocationType="RequestResponse"` waited up to 300s for Braket Lambda | Changed to `InvocationType="Event"`; orchestrator returns 202 immediately |
 
 ---
 
@@ -538,23 +537,23 @@ Poll for quantum job completion.
 
 ### Infrastructure
 
-- **Terraform** — 10 modules, 38 resources, fully reproducible
-- **Python 3.12** — boto3, itertools, json, uuid, decimal handling
-- **JAQCD IR** — Braket's native JSON circuit format
+- **Terraform** - 10 modules, 38 resources, fully reproducible
+- **Python 3.12** - boto3, itertools, json, uuid, decimal handling
+- **JAQCD IR** - Braket's native JSON circuit format
 
 ### Algorithms
 
-- **QAOA** — Quantum Approximate Optimization Algorithm (p=3 layers)
-- **Hungarian-style brute-force** — N! permutation search for classical path and quantum verification
-- **Bitstring decoding** — Most-probable measurement → valid assignment with greedy fallback for noisy results
+- **QAOA** - Quantum Approximate Optimization Algorithm (p=3 layers)
+- **Hungarian-style brute-force** - N! permutation search for classical path and quantum verification
+- **Bitstring decoding** - Most-probable measurement → valid assignment with greedy fallback for noisy results
 
 ---
 
 ## About
 
 **Xavier Dupuis**
-Cybersecurity Advisor — Banque Nationale du Canada (Risk Evaluation & Analysis)
-B.Eng. Cybersecurity Engineering — École Polytechnique de Montréal (Graduating 2026)
+Cybersecurity Advisor - Banque Nationale du Canada (Cybsersecurity Advisor)
+B.Eng. Cybersecurity Engineering - École Polytechnique de Montréal (Graduating 2026)
 
 **Certifications:**
 - AWS Certified Security Specialty
@@ -565,11 +564,11 @@ B.Eng. Cybersecurity Engineering — École Polytechnique de Montréal (Graduati
 
 **What this project demonstrates:**
 
-This is not a tutorial follow-along. Every error in the Engineering Challenges section above was encountered live against real AWS infrastructure and debugged independently — often requiring deep reading of SDK source code (amazon-braket-schemas-python), AWS service documentation, and CloudWatch logs. The quantum circuit debugging alone required understanding JAQCD IR schema formats, Braket device constraints, OpenQASM dialect differences, and Bedrock inference profile IAM authorization patterns that do not appear in standard AWS certification curricula.
+This deployment goes beyond standard cloud implementations, showcasing the ability to independently engineer and debug bleeding-edge AWS technologies where standard tutorials do not yet exist.
 
 The project demonstrates the ability to:
 - Design and deploy production-grade hybrid quantum-classical infrastructure on AWS from scratch
-- Debug novel technical problems across 6+ AWS services simultaneously under real deployment conditions
+- Debug novel technical problems across many AWS services simultaneously under real deployment conditions
 - Apply quantum computing algorithms (QAOA) to a real-world cybersecurity optimization problem
 - Communicate complex technical systems in clear, executive-level language via AI-augmented reporting
 - Build fully reproducible, modular infrastructure as code across 10 Terraform modules
