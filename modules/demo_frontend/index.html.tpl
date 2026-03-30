@@ -831,7 +831,7 @@
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const API_URL   = "https://8gg49mhree.execute-api.us-east-1.amazonaws.com/";
+const API_URL   = "${api_url}";
 const THRESHOLD = 4;
 
 const ANALYST_NAMES = {
