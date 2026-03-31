@@ -527,9 +527,9 @@ Poll for quantum job completion.
 
 ## About
 
-**Xavier Dupuis**
-Cybersecurity Advisor - Banque Nationale du Canada
-B.Eng. Cybersecurity Engineering - École Polytechnique de Montréal (Graduating 2026)
+**Xavier Dupuis**  
+Cybersecurity Advisor - Banque Nationale du Canada  
+B.Eng. Cybersecurity Engineering - École Polytechnique de Montréal (Graduating 2026)  
 
 **Certifications:**
 - AWS Certified Security Specialty
