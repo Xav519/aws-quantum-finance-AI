@@ -73,7 +73,7 @@ The website is served by CloudFront (the `demo_url` output after deployment). To
 <p align="center"><img src="./assets/ExempleClassical3Initial.png" alt="Classical example input" width="80%"></p>
 <p align="center"><img src="./assets/ExempleClassical3After.png" alt="Classical example result" width="85%"></p>
 
-**3. 5×5 teams: a 25-qubit quantum job runs on Amazon Braket (1-2 minutes)**
+**3. 5×5 teams: a 25-qubit quantum job runs on Amazon Braket (about 45 seconds)**
 
 <p align="center"><img src="./assets/ExempleQuantumInitial.png" alt="Quantum example input" width="80%"></p>
 <p align="center"><img src="./assets/QuantumLoading.png" alt="Quantum job running" width="80%"></p>
@@ -97,7 +97,7 @@ The website is served by CloudFront (the `demo_url` output after deployment). To
                                (runs in the background)          │
                                                                  ▼
                                decode quantum results, verify against the proven best answer,
-                               AI summary, store result ──► browser picks it up   (≈1-2 min)
+                               AI summary, store result ──► browser picks it up   (≈45 s)
 ```
 
 ### The architecture

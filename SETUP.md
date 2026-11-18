@@ -182,7 +182,7 @@ All inputs below are in [`examples/`](examples/). The classical results are dete
    - Greedy baseline **$214,000**, saved **$29,000**, assignments checked **6**
    - Sarah → Phishing Campaign, Marc → Data Exfiltration, David → Ransomware
 
-4. Select **5 Analysts · 5 Threats**, enter the matrix from the README (or `examples/quantum-5x5.json`) and run it. A spinner shows the Braket job; after 1-2 minutes you should see the [expected quantum result](#53-quantum-path-5x5-on-amazon-braket).
+4. Select **5 Analysts · 5 Threats**, enter the matrix from the README (or `examples/quantum-5x5.json`) and run it. A spinner shows the Braket job; after about 45 seconds you should see the [expected quantum result](#53-quantum-path-5x5-on-amazon-braket).
 
 ### 5.2 Classical path (3×3) with the API
 
@@ -237,7 +237,7 @@ $JOB
 
 The submit response is `202 Accepted` with `"status": "PENDING"`, `"qubits": 25`, `"shots": 1000`.
 
-Poll until complete (usually 1-2 minutes):
+Poll until complete (about 45 seconds; the SV1 task itself takes 20-30 s):
 
 ```bash
 # bash
@@ -270,14 +270,14 @@ $R | ConvertTo-Json -Depth 6
 
 The `qaoa` block reports what the quantum circuit measured. For this exact matrix, the simulator gives a per-shot probability of **0.395** for a valid assignment and **0.0385** for the optimal one. With 1,000 shots you should therefore see:
 
-| Field | Expected range (99.7% of runs) | Reference run |
+| Field | Expected range | Simulator reference | Live SV1 runs (2026-11-18) |
 |---|---|---|
-| `qaoa.feasible_fraction` | 0.35 - 0.44 | 0.391 |
-| `qaoa.optimal_fraction` | 0.020 - 0.057 | 0.041 |
-| `qaoa.qaoa_found_optimum` | `true` (the chance of no optimal shot in 1,000 is below 10⁻¹⁶) | `true` |
-| `qaoa.qaoa_cost` / `qaoa.qaoa_gap_pct` | 209000 / 0.0 | 209000 / 0.0 |
-| `qaoa.distinct_bitstrings` | around 500 (varies with sampling) | 494 |
-| `qaoa.layers` / `qaoa.qubits` / `qaoa.shots` | 16 / 25 / 1000 | |
+| `qaoa.feasible_fraction` | about 0.33 - 0.46 | 0.391 | 0.346, 0.398 |
+| `qaoa.optimal_fraction` | about 0.02 - 0.06 | 0.041 | 0.033, 0.049 |
+| `qaoa.qaoa_found_optimum` | `true` (the chance of no optimal shot in 1,000 is below 10⁻¹⁶) | `true` | `true`, `true` |
+| `qaoa.qaoa_cost` / `qaoa.qaoa_gap_pct` | 209000 / 0 | 209000 / 0 | 209000 / 0 |
+| `qaoa.distinct_bitstrings` | around 500 (varies with sampling) | 494 | 509, 505 |
+| `qaoa.layers` / `qaoa.qubits` / `qaoa.shots` | 16 / 25 / 1000 | | 16 / 25 / 1000 |
 
 SV1 is an exact, noiseless simulator, so these numbers are statistically the same as the offline simulation in the next step.
 
