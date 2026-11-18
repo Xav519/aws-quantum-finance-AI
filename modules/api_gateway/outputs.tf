@@ -4,5 +4,6 @@ output "api_url" {
 }
 
 output "api_id" {
-  value = aws_apigatewayv2_api.main.id
+  description = "HTTP API ID (used for CloudWatch metrics)"
+  value       = aws_apigatewayv2_api.main.id
 }

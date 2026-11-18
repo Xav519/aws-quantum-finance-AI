@@ -2,27 +2,34 @@ locals {
   prefix = "${var.project}-${var.environment}"
 
   # Amazon Braket requires the output bucket name to start with "amazon-braket-".
-  # This is a hard AWS requirement enforced at CreateQuantumTask time.
-  # "amazon-braket-" = 14 chars, leaving 49 chars — we use 40 to be safe.
+  # This is enforced at CreateQuantumTask time, regardless of IAM permissions.
+  # 14 chars of prefix + at most 40 chars keeps us under the 63-char limit.
   braket_bucket_name = "amazon-braket-${substr(local.prefix, 0, 40)}"
 }
 
-# - S3 Bucket: Raw Braket Results -
-# Must start with "amazon-braket-" — enforced by the Braket service.
+# =============================================================================
+# S3: raw Braket results
+# =============================================================================
 resource "aws_s3_bucket" "braket_results" {
   bucket        = local.braket_bucket_name
-  force_destroy = true  # Braket writes objects Terraform doesn't track
+  force_destroy = true # Braket writes objects Terraform does not track
 }
 
-# Enables Versioning: Allows you to recover previous versions of an object.
-resource "aws_s3_bucket_versioning" "braket_results" {
+resource "aws_s3_bucket_public_access_block" "braket_results" {
+  bucket                  = aws_s3_bucket.braket_results.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "braket_results" {
   bucket = aws_s3_bucket.braket_results.id
-  versioning_configuration {
-    status = "Enabled"
+  rule {
+    object_ownership = "BucketOwnerEnforced" # disables ACLs entirely
   }
 }
 
-# Server-Side Encryption: Ensures data is encrypted before being saved to disk.
 resource "aws_s3_bucket_server_side_encryption_configuration" "braket_results" {
   bucket = aws_s3_bucket.braket_results.id
   rule {
@@ -32,44 +39,74 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "braket_results" {
   }
 }
 
-# Security lockdown (to be sure): Explicitly blocks all public access to the bucket.
-resource "aws_s3_bucket_public_access_block" "braket_results" {
-  bucket                  = aws_s3_bucket.braket_results.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+# Results are only read once, by the completion handler. Keep them long enough
+# to debug, then expire them so the bucket does not grow forever.
+resource "aws_s3_bucket_lifecycle_configuration" "braket_results" {
+  bucket = aws_s3_bucket.braket_results.id
+
+  rule {
+    id     = "expire-task-results"
+    status = "Enabled"
+    filter {}
+    expiration {
+      days = var.results_retention_days
+    }
+    # Clean up versions left from when versioning was enabled on this bucket
+    noncurrent_version_expiration {
+      noncurrent_days = 1
+    }
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 1
+    }
+  }
 }
 
-# DynamoDB: Job Status Table
+# Deny any request that is not over TLS.
+resource "aws_s3_bucket_policy" "braket_results" {
+  bucket     = aws_s3_bucket.braket_results.id
+  depends_on = [aws_s3_bucket_public_access_block.braket_results]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "DenyInsecureTransport"
+      Effect    = "Deny"
+      Principal = "*"
+      Action    = "s3:*"
+      Resource  = [aws_s3_bucket.braket_results.arn, "${aws_s3_bucket.braket_results.arn}/*"]
+      Condition = { Bool = { "aws:SecureTransport" = "false" } }
+    }]
+  })
+}
+
+# =============================================================================
+# DynamoDB: job records
+# =============================================================================
+# Single-table, key-value access only (GetItem / PutItem / UpdateItem by job_id).
+# The completion handler finds its job through the Braket task's `job_id` tag,
+# so no secondary index is needed.
 resource "aws_dynamodb_table" "jobs" {
   name         = "${local.prefix}-jobs"
-  # On-demand pricing: You only pay for the reads/writes you actually use.
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "job_id" # Primary Key: Every job must have a unique String (S) ID.
+  hash_key     = "job_id"
 
   attribute {
     name = "job_id"
     type = "S"
   }
 
-  # FIX: added attribute + GSI so handle_complete can query by braket_task_arn
-  # instead of doing a full-table scan. This makes the lookup O(1) in cost and
-  # latency regardless of how many jobs are in the table.
-  attribute {
-    name = "braket_task_arn"
-    type = "S"
-  }
-
-  global_secondary_index {
-    name            = "braket-task-arn-index"
-    hash_key        = "braket_task_arn"
-    projection_type = "ALL"
-  }
-
-  # Automatic Cleanup: Deletes the item when the 'expires_at' Unix timestamp is reached.
+  # Items carry an epoch `expires_at`; DynamoDB deletes them automatically.
   ttl {
     attribute_name = "expires_at"
     enabled        = true
+  }
+
+  server_side_encryption {
+    enabled = true # AWS-managed KMS key
+  }
+
+  tags = {
+    Project     = var.project
+    Environment = var.environment
   }
 }
