@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Optimize Cyber Incident Response</title>
+  <meta name="description" content="Assign the right analyst to the right threat: exact classical optimisation and QAOA on Amazon Braket, with AI-generated board summaries."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<div class="page-wrapper">
+
+<!-- ── Header ── -->
+<header>
+  <h1>
+    <span class="soc">Optimize</span>
+    Cyber Incident
+    <span class="opt">Response</span>
+  </h1>
+  <p class="header-sub">
+    Minimize costs with optimal analyst assignments &nbsp;·&nbsp; Xavier Dupuis
+  </p>
+</header>
+
+<!-- ── Explainer ── -->
+<div class="explainer">
+  <div class="explainer-block problem">
+    <strong class="label">The Problem</strong>
+    When multiple cyber threats happen at the same time, choosing who handles what is hard and mistakes <strong>cost money</strong>.
+  </div>
+  <div class="explainer-block calculus">
+    <strong class="label">The Solution</strong>
+    <br>
+    This system finds the assignment of analysts to threats that <strong>minimizes</strong> total financial loss.
+  </div>
+  <div class="explainer-block goal">
+    <strong class="label">How</strong>
+    Up to 4×4 is solved exactly and instantly. At 5×5 a <strong>quantum</strong> QAOA circuit runs on Amazon Braket, and the answer is <strong>verified classically</strong>.
+  </div>
+</div>
+
+<!-- ── Config ── -->
+<div class="config-row">
+  <div class="control">
+    <label for="size-select">Team / Threat Size</label>
+    <select id="size-select">
+      <option value="2">2 Analysts · 2 Threats</option>
+      <option value="3">3 Analysts · 3 Threats</option>
+      <option value="4" selected>4 Analysts · 4 Threats</option>
+      <option value="5">5 Analysts · 5 Threats</option>
+    </select>
+  </div>
+  <div id="mode-badge" class="mode-badge classical">
+    <span id="mode-label">Classical Brute-Force</span>
+  </div>
+</div>
+
+<!-- ── Info bar ── -->
+<div id="info-bar" class="info-bar">Loading…</div>
+
+<!-- ── Chips ── -->
+<div class="chips-section">
+  <div id="analyst-chips" class="label-row"></div>
+  <div id="alert-chips"   class="label-row"></div>
+</div>
+
+<!-- ── Table ── -->
+<div class="table-wrapper">
+  <div class="table-header">
+    <span class="table-title">💰 Breach Impact Cost Matrix (USD)</span>
+  </div>
+  <table id="cost-table"></table>
+</div>
+
+<!-- ── Actions ── -->
+<div class="actions">
+  <button id="btn-generate" type="button">🎲 Generate Random Values</button>
+  <button id="btn-clear"    type="button">✕ Clear</button>
+  <button id="btn-submit"   type="button" class="classical">▶ Find Optimal Assignment</button>
+</div>
+
+<!-- ── Quantum status ── -->
+<div id="quantum-status" role="status" aria-live="polite">
+  <div class="spinner"></div>
+  <div class="qs-details">
+    <div class="qs-title">QAOA Circuit Running on Amazon Braket SV1…</div>
+    <div class="qs-sub" id="qs-info"></div>
+  </div>
+</div>
+
+<!-- ── Result ── -->
+<div id="result-panel" aria-live="polite"></div>
+
+</div><!-- /page-wrapper -->
+</body>
+</html>

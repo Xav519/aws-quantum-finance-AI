@@ -1,12 +1,19 @@
 variable "project" {
-  type = string
+  description = "Project name prefix"
+  type        = string
 }
 
 variable "environment" {
-  type = string
+  description = "Deployment environment"
+  type        = string
+}
+
+variable "aws_region" {
+  description = "Region of the API (used in the Content-Security-Policy)"
+  type        = string
 }
 
 variable "api_url" {
-  description = "Base URL of the API Gateway (injected into the HTML)"
+  description = "Base URL of the HTTP API, written into config.js"
   type        = string
 }

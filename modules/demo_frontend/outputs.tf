@@ -1,4 +1,14 @@
 output "demo_url" {
-  description = "Public URL of the demo frontend"
-  value       = "http://${aws_s3_bucket.frontend.bucket}.s3-website-us-east-1.amazonaws.com"
+  description = "HTTPS URL of the demo frontend"
+  value       = "https://${aws_cloudfront_distribution.frontend.domain_name}"
+}
+
+output "cloudfront_origin" {
+  description = "Origin to allow in the API's CORS configuration"
+  value       = "https://${aws_cloudfront_distribution.frontend.domain_name}"
+}
+
+output "distribution_id" {
+  description = "CloudFront distribution ID (for cache invalidations)"
+  value       = aws_cloudfront_distribution.frontend.id
 }
