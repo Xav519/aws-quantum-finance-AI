@@ -1,0 +1,11 @@
+{
+  "analysts": ["Sarah (Network)", "Marc (Phishing)", "David (Forensics)", "Lisa (Malware)", "Chen (Cloud)"],
+  "alerts": ["Ransomware", "Data Exfiltration", "Phishing Campaign", "SQL Injection", "DDoS Attack"],
+  "cost_matrix": [
+    [72000,  95000,  98000,  75000,  37000],
+    [112000, 31000,  67000,  99000,  49000],
+    [56000,  65000, 111000, 106000,  34000],
+    [61000, 120000,  28000,  77000, 115000],
+    [107000, 101000, 10000,  81000,  19000]
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "analysts": ["Sarah", "Marc"],
+  "alerts": ["Ransomware", "Phishing"],
+  "cost_matrix": [[1000, -5], [2000, 3000]]
+}
