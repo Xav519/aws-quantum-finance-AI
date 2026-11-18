@@ -1,3 +1,17 @@
+# ==============================================================================
+# modules/shared_layer/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Packages the shared Python code (qf_common) as a Lambda layer.
+#
+# DETAILS
+#   Several functions need the same helpers (solver, Bedrock client, job record
+#   formatting, HTTP responses). Publishing them once as a layer avoids copying
+#   the same code into every function.
+#   Lambda extracts layers under /opt and adds /opt/python to the import path,
+#   which is why the code lives in layer/python/qf_common/.
+# ==============================================================================
+
 locals {
   prefix = "${var.project}-${var.environment}"
 }

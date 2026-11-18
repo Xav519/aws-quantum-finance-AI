@@ -1,3 +1,16 @@
+# ==============================================================================
+# .github/workflows/ci.yml
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Continuous Integration: GitHub runs this automatically on every push and pull request.
+#
+# DETAILS
+#   Two jobs run in parallel:
+#     1. python    -> installs the dev dependencies and runs the whole pytest suite.
+#     2. terraform -> checks formatting (fmt) and that the configuration is valid.
+#   A green check on GitHub means both passed. No AWS credentials are used here.
+# ==============================================================================
+
 name: CI
 
 on:

@@ -1,9 +1,16 @@
 """
-Amazon Bedrock (Anthropic Claude) narrative generation.
+==============================================================================
+modules/shared_layer/layer/python/qf_common/bedrock.py
+------------------------------------------------------------------------------
+PURPOSE
+  Writes the 3-sentence board summary with Claude on Amazon Bedrock.
 
-The narrative is a nice-to-have. If Bedrock is throttled, unavailable or
-returns no text, the caller gets a deterministic fallback so an optimisation
-result is never lost because of the LLM.
+DETAILS
+  Safety rails: the system prompt allows only the provided figures, forbids
+  quantum-advantage claims, and treats user-typed names as data (not
+  instructions). If Bedrock fails, is throttled or refuses, the caller gets a
+  deterministic template instead, so a result is never lost.
+==============================================================================
 """
 
 from __future__ import annotations
@@ -31,6 +38,7 @@ _client = None
 
 
 def _bedrock():
+    """Create the Bedrock client on first use (keeps imports fast and testable without AWS)."""
     global _client
     if _client is None:
         _client = boto3.client(

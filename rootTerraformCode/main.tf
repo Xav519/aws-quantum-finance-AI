@@ -1,3 +1,17 @@
+# ==============================================================================
+# rootTerraformCode/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Entry point of the whole infrastructure. `terraform apply` is run from this folder.
+#
+# DETAILS
+#   It wires the 11 reusable modules (in ../modules) together, in dependency order:
+#   storage -> IAM -> shared layer -> Lambdas -> events -> frontend -> API -> monitoring.
+#   Outputs of one module (ARNs, names) are passed as inputs to the next.
+#   The `moved` blocks at the bottom let an older deployment upgrade without
+#   destroying and re-creating resources that were only renamed or relocated.
+# ==============================================================================
+
 terraform {
   required_version = ">= 1.7"
   required_providers {

@@ -1,12 +1,18 @@
 """
-Offline QAOA benchmark (noiseless statevector, same circuit parameters as the Lambda).
+==============================================================================
+tests/benchmark_qaoa.py
+------------------------------------------------------------------------------
+PURPOSE
+  Reproduces the QAOA performance table from the README on your own machine.
 
-    python tests/benchmark_qaoa.py              # N = 3 and 4, 20 random instances each
-    python tests/benchmark_qaoa.py --n 5 --instances 5   # 25 qubits: ~3 min/instance, ~1.5 GB RAM
-
-For each random cost matrix it reports the exact probability that one shot is a
-valid assignment / the optimal assignment, and whether the best valid sample in
-`--shots` sampled measurements is the optimum (what the Lambda reports).
+DETAILS
+  Usage:
+    python tests/benchmark_qaoa.py                        # N = 3 and 4
+    python tests/benchmark_qaoa.py --n 5 --instances 5    # 25 qubits (~3 min each)
+  For random cost matrices it reports the chance one shot is a valid / optimal
+  assignment, and whether the best of 1,000 sampled shots is the optimum.
+  Fixed random seeds, so the output is identical on every run.
+==============================================================================
 """
 
 import argparse
@@ -26,6 +32,7 @@ import statevector as sv  # noqa: E402
 
 
 def run_instance(cost, shots, seed):
+    """Simulate one cost matrix: exact P(valid), P(optimal), and the metrics of 1,000 sampled shots."""
     n = len(cost)
     num_qubits = n * n
     h, J = qaoa.build_ising(cost)
@@ -49,6 +56,7 @@ def run_instance(cost, shots, seed):
 
 
 def main():
+    """Parse the command line, run every instance and print the summary table."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--n", type=int, nargs="+", default=[3, 4])
     parser.add_argument("--instances", type=int, default=20)

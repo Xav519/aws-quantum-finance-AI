@@ -1,3 +1,13 @@
+# ==============================================================================
+# modules/messaging/outputs.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Values the `messaging` module exposes to other modules.
+#
+# DETAILS
+#   Read in rootTerraformCode/main.tf as module.<name>.<output>.
+# ==============================================================================
+
 output "eventbridge_rule_arn" {
   description = "ARN of the EventBridge rule that triggers Lambda Braket on task completion"
   value       = aws_cloudwatch_event_rule.braket_task_complete.arn

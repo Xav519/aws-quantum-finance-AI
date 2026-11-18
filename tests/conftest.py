@@ -1,3 +1,17 @@
+"""
+==============================================================================
+tests/conftest.py
+------------------------------------------------------------------------------
+PURPOSE
+  Shared pytest setup, loaded automatically before any test.
+
+DETAILS
+  Adds the Lambda source folders to the import path the same way AWS does
+  (layer code under python/, function code at the zip root) and sets dummy
+  environment variables so modules import without real AWS settings.
+==============================================================================
+"""
+
 import os
 import sys
 

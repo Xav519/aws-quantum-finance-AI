@@ -1,3 +1,13 @@
+# ==============================================================================
+# modules/iam/outputs.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Values the `iam` module exposes to other modules.
+#
+# DETAILS
+#   The four role ARNs, one per Lambda module.
+# ==============================================================================
+
 output "orchestrator_role_arn" {
   description = "Execution role ARN for the orchestrator Lambda"
   value       = aws_iam_role.orchestrator.arn

@@ -1,16 +1,20 @@
 """
-================================================================================
-LAMBDA ORCHESTRATOR: HYBRID QUANTUM-CLASSICAL ROUTER  (POST /optimize)
-================================================================================
-1. Validates the request (validation.py).
-2. Routes by problem size N:
-   - N <= CLASSICAL_THRESHOLD -> classical Lambda, synchronous, 200 + result.
-   - N >  CLASSICAL_THRESHOLD -> quantum path, asynchronous, 202 + job_id:
-       a. enforces a daily quantum-job quota (cost guard for a public API),
-       b. writes the PENDING job record FIRST, so GET /jobs/{id} can never 404
-          for an accepted job, even if a later step fails,
-       c. invokes the Braket Lambda asynchronously (InvocationType=Event).
-================================================================================
+==============================================================================
+modules/lambda_orchestrator/src/handler.py
+------------------------------------------------------------------------------
+PURPOSE
+  Orchestrator Lambda: receives POST /optimize and decides how to solve it.
+
+DETAILS
+  1. Reads and validates the JSON body (rules in validation.py).
+  2. Routes by problem size N:
+     - N <= 4: calls the classical Lambda and waits (about 2 s) -> HTTP 200.
+     - N = 5: quantum path, asynchronous -> HTTP 202 with a job_id:
+         a. reserves one slot of the daily quantum quota (cost protection),
+         b. writes the job as PENDING in DynamoDB *first*, so polling can never
+            get a 404 for an accepted job,
+         c. invokes the Braket Lambda in the background (fire-and-forget).
+==============================================================================
 """
 
 import base64
@@ -42,6 +46,7 @@ MAX_BODY_BYTES = 16 * 1024
 
 
 def _parse_body(event: dict) -> dict:
+    """Read the HTTP body (base64 if API Gateway encoded it), enforce a size limit, parse JSON."""
     raw = event.get("body") or "{}"
     if event.get("isBase64Encoded"):
         raw = base64.b64decode(raw).decode("utf-8")
@@ -75,6 +80,7 @@ def _reserve_quantum_quota() -> bool:
 
 
 def _run_classical(payload: dict) -> dict:
+    """Small problem: call the classical Lambda and wait for its answer (HTTP 200)."""
     resp = lambda_client.invoke(
         FunctionName=LAMBDA_CLASSICAL,
         InvocationType="RequestResponse",
@@ -88,6 +94,7 @@ def _run_classical(payload: dict) -> dict:
 
 
 def _run_quantum(payload: dict) -> dict:
+    """N = 5: check the quota, record the job as PENDING, start the quantum Lambda (HTTP 202)."""
     if not _reserve_quantum_quota():
         return json_response(429, {
             "error": "Daily quantum job limit reached for this demo. Please try again tomorrow, "
@@ -137,6 +144,7 @@ def _run_quantum(payload: dict) -> dict:
 
 
 def lambda_handler(event, context):
+    """Entry point for POST /optimize: validate the request, then route by problem size."""
     try:
         analysts, alerts, cost_matrix = validate_request(_parse_body(event))
     except ValidationError as exc:

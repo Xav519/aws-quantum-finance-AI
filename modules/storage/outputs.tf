@@ -1,3 +1,13 @@
+# ==============================================================================
+# modules/storage/outputs.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Values the `storage` module exposes to other modules.
+#
+# DETAILS
+#   Read in rootTerraformCode/main.tf as module.<name>.<output>.
+# ==============================================================================
+
 output "results_bucket_name" {
   description = "Name of the S3 bucket for Braket results"
   value       = aws_s3_bucket.braket_results.bucket

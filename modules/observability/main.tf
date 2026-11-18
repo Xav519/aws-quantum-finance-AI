@@ -1,3 +1,16 @@
+# ==============================================================================
+# modules/observability/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Monitoring: email alerts, error alarms and a CloudWatch dashboard.
+#
+# DETAILS
+#     SNS topic + email subscription -> where alerts are sent (confirm the email!)
+#     5 alarms -> any error in one of the 4 Lambdas, or any 5xx from the API
+#     Dashboard -> invocations, errors, latency and API traffic on one page
+#   Lambda log groups are defined next to each function, not here.
+# ==============================================================================
+
 locals {
   prefix = "${var.project}-${var.environment}"
 

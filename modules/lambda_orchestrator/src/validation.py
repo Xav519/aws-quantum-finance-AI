@@ -1,9 +1,16 @@
 """
-Request validation for POST /optimize.
+==============================================================================
+modules/lambda_orchestrator/src/validation.py
+------------------------------------------------------------------------------
+PURPOSE
+  Checks every POST /optimize request before anything else happens.
 
-Everything that reaches DynamoDB, Braket or the Bedrock prompt passes
-through here first, so the rules are strict: bounded sizes, a conservative
-character allow-list for labels, and finite, non-negative costs.
+DETAILS
+  Rejects (HTTP 400) anything unexpected: wrong types, sizes outside 2..5,
+  non-square matrices, negative/infinite/huge costs, duplicate names, or names
+  with unusual characters. Everything that reaches DynamoDB, Braket or the AI
+  prompt has passed through here.
+==============================================================================
 """
 
 from __future__ import annotations
@@ -19,10 +26,12 @@ LABEL_RE = re.compile(r"^[\w][\w .,'()&/+-]*$", re.UNICODE)
 
 
 class ValidationError(ValueError):
+    """Raised for any invalid request; its message is returned to the user (HTTP 400)."""
     pass
 
 
 def _labels(value, field: str, n_expected: int | None = None) -> list[str]:
+    """Validate a list of analyst or threat names (type, length, characters, uniqueness, size)."""
     if not isinstance(value, list) or not value:
         raise ValidationError(f"'{field}' must be a non-empty list of names")
     out = []
@@ -44,6 +53,7 @@ def _labels(value, field: str, n_expected: int | None = None) -> list[str]:
 
 
 def _cost(value) -> float | int:
+    """Validate one cost: a real, finite number between 0 and MAX_COST."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValidationError("every cost must be a number")
     if not math.isfinite(value) or value < 0 or value > MAX_COST:

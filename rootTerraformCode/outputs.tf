@@ -1,3 +1,14 @@
+# ==============================================================================
+# rootTerraformCode/outputs.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Values Terraform prints after `terraform apply`.
+#
+# DETAILS
+#   The two you need most: `demo_url` (the website) and `api_url` (the API).
+#   Re-display them any time with `terraform output`.
+# ==============================================================================
+
 output "demo_url" {
   description = "HTTPS URL of the demo frontend (CloudFront)"
   value       = module.demo_frontend.demo_url

@@ -1,3 +1,14 @@
+# ==============================================================================
+# rootTerraformCode/variables.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Every setting you can change for a deployment, with safe defaults.
+#
+# DETAILS
+#   Set your own values in terraform.tfvars (see terraform.tfvars.example).
+#   Only `alert_email` is required; everything else has a default.
+# ==============================================================================
+
 variable "aws_region" {
   description = "AWS region (Braket SV1 and the us.* Bedrock inference profile are available in us-east-1)"
   type        = string

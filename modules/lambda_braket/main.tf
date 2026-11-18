@@ -1,3 +1,15 @@
+# ==============================================================================
+# modules/lambda_braket/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Deploys the Braket Lambda: submits the QAOA quantum circuit and processes the result.
+#
+# DETAILS
+#   The same function handles two events: `submit` (from the orchestrator) and
+#   `task finished` (from EventBridge). Code in src/handler.py and src/qaoa.py.
+#   Creates: the function, its log group, and its async retry settings.
+# ==============================================================================
+
 locals {
   prefix        = "${var.project}-${var.environment}"
   function_name = "${local.prefix}-braket"

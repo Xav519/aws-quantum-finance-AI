@@ -1,3 +1,18 @@
+# ==============================================================================
+# modules/storage/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Where data lives: the DynamoDB jobs table and the S3 bucket for quantum results.
+#
+# DETAILS
+#   DynamoDB table `<prefix>-jobs`
+#     One item per optimization job (status, inputs, result) plus a daily quota
+#     counter. Items delete themselves after 7 days (TTL).
+#   S3 bucket `amazon-braket-<prefix>`
+#     Amazon Braket writes each quantum task's raw measurements here. The name
+#     prefix is required by Braket. Private, encrypted, TLS-only, auto-expiring.
+# ==============================================================================
+
 locals {
   prefix = "${var.project}-${var.environment}"
 

@@ -1,13 +1,17 @@
 """
-Classical solvers for the N x N assignment problem.
+==============================================================================
+modules/shared_layer/layer/python/qf_common/solver.py
+------------------------------------------------------------------------------
+PURPOSE
+  Classical solvers for the N x N assignment problem.
 
-`solve_exact` enumerates all N! permutations. That is deliberate: for the
-N <= 5 sizes this demo accepts (at most 120 permutations) it is instant and
-trivially verifiable. Production systems at larger N would use the Hungarian
-algorithm (O(N^3), e.g. scipy.optimize.linear_sum_assignment).
-
-`solve_greedy` is the "intuition" baseline: each analyst, in order, takes the
-cheapest threat still open. It shows what the optimisation is worth.
+DETAILS
+  solve_exact  -> tries all N! assignments and returns the cheapest. Instant for
+                  N <= 5 (at most 120) and easy to verify. Larger N would use
+                  the Hungarian algorithm (scipy.optimize.linear_sum_assignment).
+  solve_greedy -> the 'intuition' baseline: each analyst, in order, takes the
+                  cheapest threat still open. Shows what optimization saves.
+==============================================================================
 """
 
 from __future__ import annotations
@@ -17,10 +21,12 @@ from math import factorial
 
 
 def assignment_cost(cost_matrix, assignment) -> float:
+    """Total cost of an assignment (assignment[i] = threat index for analyst i)."""
     return sum(cost_matrix[i][j] for i, j in enumerate(assignment))
 
 
 def solve_exact(cost_matrix) -> tuple[list[int], float]:
+    """Try every assignment and return (best assignment, its cost). Guaranteed optimal."""
     n = len(cost_matrix)
     best = min(
         itertools.permutations(range(n)),
@@ -30,6 +36,7 @@ def solve_exact(cost_matrix) -> tuple[list[int], float]:
 
 
 def solve_greedy(cost_matrix) -> tuple[list[int], float]:
+    """Each analyst in turn takes the cheapest open threat. Returns (assignment, cost)."""
     n = len(cost_matrix)
     taken: set[int] = set()
     assignment = []
@@ -41,4 +48,5 @@ def solve_greedy(cost_matrix) -> tuple[list[int], float]:
 
 
 def combinations_count(n: int) -> int:
+    """Number of possible assignments for N analysts: N! (N factorial)."""
     return factorial(n)

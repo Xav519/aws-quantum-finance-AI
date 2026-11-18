@@ -1,3 +1,16 @@
+# ==============================================================================
+# modules/api_gateway/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   The public front door: an HTTP API with two routes.
+#
+# DETAILS
+#     POST /optimize     -> Orchestrator Lambda (start an optimization)
+#     GET  /jobs/{id}    -> get-job Lambda (poll a quantum job)
+#   Also: request throttling (cost protection), CORS restricted to the website,
+#   and JSON access logs in CloudWatch.
+# ==============================================================================
+
 locals {
   prefix = "${var.project}-${var.environment}"
 }

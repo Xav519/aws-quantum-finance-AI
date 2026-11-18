@@ -1,3 +1,15 @@
+# ==============================================================================
+# modules/lambda_classical/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Deploys the Classical Lambda: the exact solver for small problems (N <= 4).
+#
+# DETAILS
+#   It checks every possible assignment, computes the greedy baseline, asks
+#   Bedrock for a board summary and stores the result.
+#   Creates: the function (zipped from src/) and its log group (7-day retention).
+# ==============================================================================
+
 locals {
   prefix        = "${var.project}-${var.environment}"
   function_name = "${local.prefix}-classical"

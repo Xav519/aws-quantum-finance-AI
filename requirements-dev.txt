@@ -1,5 +1,16 @@
-# Local development and CI only. The Lambdas use the runtime's bundled boto3
-# and have no third-party dependencies.
+# ==============================================================================
+# requirements-dev.txt
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Python packages needed on a developer machine or in CI (not in AWS).
+#
+# DETAILS
+#   boto3  -> AWS SDK, imported by the Lambda code under test.
+#   numpy  -> used only by the local quantum simulator in tests/.
+#   pytest -> the test runner.
+#   Install with: pip install -r requirements-dev.txt
+# ==============================================================================
+
 boto3>=1.34
 numpy>=1.26
 pytest>=8.0

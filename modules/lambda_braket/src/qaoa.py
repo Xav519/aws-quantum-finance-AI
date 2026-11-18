@@ -1,43 +1,36 @@
 """
-QAOA for the N x N analyst-to-threat assignment problem.
+==============================================================================
+modules/lambda_braket/src/qaoa.py
+------------------------------------------------------------------------------
+PURPOSE
+  The quantum algorithm: turns the assignment problem into a QAOA circuit, and
+    turns the measured results back into answers and quality metrics.
 
-Pure-Python (no numpy) so it runs in the stock Lambda runtime and can be unit
-tested locally.
+DETAILS
+  Pure Python (no numpy) so it runs in the stock Lambda runtime.
 
-Formulation
------------
-One binary variable x_ij per (analyst i, threat j) pair  ->  N^2 qubits,
-qubit k = i * N + j.  The problem is written as a QUBO:
-
-    E(x) = sum_ij c'_ij x_ij
-         + A * sum_i (sum_j x_ij - 1)^2      (each analyst takes one threat)
-         + A * sum_j (sum_i x_ij - 1)^2      (each threat gets one analyst)
-
-where c' is the cost matrix normalised to [0, 1] and A is the constraint
-penalty.  Removing one assignment from a valid permutation saves at most
-c'_max = 1 but violates one row and one column (+2A), so any A > 0.5 makes
-every valid permutation a local minimum. The default A = 0.75 keeps that
-margin without drowning the cost signal (tuned offline, see below).
-
-The QUBO is mapped to an Ising Hamiltonian with x = (1 - z) / 2:
-
-    H_C = sum_k h_k Z_k + sum_{k<l} J_kl Z_k Z_l   (+ constant)
-
-Circuit
--------
-    |+>^n  ->  prod_{i=1..p} [ exp(-i gamma_i H_C) * exp(-i beta_i H_M) ]  ->  measure
-
-with mixer H_M = -sum_k X_k (|+>^n is its ground state).  Gate mapping:
-    exp(-i gamma h Z)        = Rz(2 gamma h)
-    exp(-i gamma J Z_k Z_l)  = CNOT(k,l) Rz_l(2 gamma J) CNOT(k,l)
-    exp(+i beta X)           = Rx(-2 beta)
-
-Parameters follow a linear-ramp schedule (an annealing-inspired, fixed
-schedule; see Montanez-Barrera & Michielsen, "Towards a universal QAOA
-protocol", 2024): gamma ramps up while beta ramps down.  Each step of a
-variational optimisation loop would be a separately billed SV1 task, so the
-schedule is fixed and was tuned offline with the local statevector simulator
-in tests/ (see README, "QAOA performance").
+  1. Problem -> QUBO
+     One qubit per (analyst i, threat j) pair: qubit k = i*N + j (25 for 5x5).
+     E(x) = sum c'_ij x_ij                 (normalised dollar cost)
+          + A * sum_i (sum_j x_ij - 1)^2    (each analyst takes one threat)
+          + A * sum_j (sum_i x_ij - 1)^2    (each threat gets one analyst)
+     Breaking a rule adds a penalty A. Dropping one assignment saves at most 1
+     but breaks a row and a column (+2A), so any A > 0.5 keeps valid plans
+     cheapest. A = 0.75.
+  2. QUBO -> Ising Hamiltonian, with x = (1 - z) / 2:
+     H_C = sum h_k Z_k + sum J_kl Z_k Z_l, rescaled so the largest |coef| = 1.
+  3. Circuit (OpenQASM 3, the format Braket SV1 accepts):
+     |+>^n -> repeat p times [ exp(-i g H_C), exp(-i b H_M) ] -> measure
+     exp(-i g h Z)       = rz(2 g h)
+     exp(-i g J Z_k Z_l) = cnot(k,l) rz_l(2 g J) cnot(k,l)
+     exp(+i b X)         = rx(-2 b)        (mixer H_M = -sum X)
+  4. Linear-ramp schedule (Montanez-Barrera & Michielsen, 2024): gamma ramps up
+     while beta ramps down over p = 16 layers. Fixed instead of optimised,
+     because each optimiser step would be a separately billed Braket task;
+     tuned offline with the simulator in tests/.
+  5. Decoding: a measured bitstring is valid only if every row and column has
+     exactly one 1. Invalid samples are reported, never 'repaired'.
+==============================================================================
 """
 
 from __future__ import annotations
@@ -56,6 +49,7 @@ DEFAULT_DELTA_BETA = 0.6
 # Problem -> QUBO -> Ising
 # --------------------------------------------------------------------------- #
 def normalise_costs(cost_matrix: list[list[float]]) -> list[list[float]]:
+    """Divide every cost by the largest one, so costs are between 0 and 1."""
     max_cost = max(max(row) for row in cost_matrix) or 1
     return [[c / max_cost for c in row] for row in cost_matrix]
 
@@ -78,6 +72,7 @@ def build_qubo(cost_matrix, penalty: float = DEFAULT_PENALTY):
             linear[i * n + j] = c[i][j] - 2 * penalty
 
     def add_pair(k, l):
+        """Add the penalty weight for two qubits that may not both be 1 (same row or column)."""
         key = (min(k, l), max(k, l))
         quadratic[key] = quadratic.get(key, 0.0) + 2 * penalty
 
@@ -205,6 +200,7 @@ def bitstring_to_assignment(bitstring: str, n: int):
 
 
 def assignment_cost(cost_matrix, assignment) -> float:
+    """Total dollar cost of an assignment (assignment[i] = threat index for analyst i)."""
     return sum(cost_matrix[i][j] for i, j in enumerate(assignment))
 
 

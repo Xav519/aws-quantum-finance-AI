@@ -1,3 +1,22 @@
+/*
+ * ==============================================================================
+ * modules/demo_frontend/site/app.js
+ * ------------------------------------------------------------------------------
+ * PURPOSE
+ *   All the behaviour of the web page.
+ *
+ * DETAILS
+ *   - Builds the cost table, the heat-map colours and the size selector.
+ *   - Sends POST /optimize; for quantum jobs, polls GET /jobs/{id} every 4 s
+ *     and animates the progress tracker.
+ *   - Renders the result: KPIs, optimal vs greedy bars, assignment cards, the
+ *     QAOA performance panel and the AI board summary.
+ *   Security: every value from the API or the user is HTML-escaped before it is
+ *   displayed; dynamic sizes/colours are set via element.style (allowed by the
+ *   CSP), never via inline style attributes.
+ * ==============================================================================
+ */
+
 "use strict";
 
 // ── Config ──────────────────────────────────────────────────────────────────
@@ -40,32 +59,39 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// Display names: "Sarah (Network)", and the first n analysts / threats for size n.
 const analystLabel = (i) => `${ANALYSTS[i][0]} (${ANALYSTS[i][1]})`;
 const analystNames = (n) => ANALYSTS.slice(0, n).map((_, i) => analystLabel(i));
 const threatNames = (n) => THREATS.slice(0, n);
 
+// n! = number of possible assignments for n analysts.
 function factorial(n) {
   let r = 1;
   for (let i = 2; i <= n; i++) r *= i;
   return r;
 }
 
+// 209000 -> "$209,000" (or an em dash if the value is missing).
 function formatUSD(val) {
   const num = Number(val);
   return Number.isFinite(num) ? "$" + num.toLocaleString("en-US") : "—";
 }
 
+// 0.403 -> "40.3%".
 function formatPct(val, digits = 1) {
   const num = Number(val);
   return Number.isFinite(num) ? (num * 100).toFixed(digits) + "%" : "—";
 }
 
+// Random cost between $10,000 and $120,000, and a shortcut to the input cell (i, j).
 const randCost = () => Math.round(Math.random() * 110 + 10) * 1000;
 const cell = (i, j) => $(`c${i}_${j}`);
 
+// Small check-mark icon shown next to "Proven optimal".
 const ICON_CHECK = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
 // ── Layout ──────────────────────────────────────────────────────────────────
+// Switch team size: update the selector, rebuild the table, reset the result.
 function setSize(n) {
   currentN = n;
   document.querySelectorAll("#size-select button").forEach((b) => {
@@ -76,6 +102,7 @@ function setSize(n) {
   resetResult();
 }
 
+// Classical (green) vs quantum (purple) badge, button and info line for size n.
 function updateMode(n) {
   const quantum = n > THRESHOLD;
   const fact = factorial(n).toLocaleString("en-US");
@@ -90,6 +117,7 @@ function updateMode(n) {
     : `<span>${fact}</span> possible assignments ${sep} every one checked ${sep} guaranteed optimum ${sep} ~2 s`;
 }
 
+// Build the n x n table of cost inputs with analyst rows and threat columns.
 function buildTable(n) {
   let html = '<thead><tr><th class="corner"></th>';
   threatNames(n).forEach((t) => { html += `<th class="col-header" scope="col">${escapeHtml(t)}</th>`; });
@@ -132,10 +160,12 @@ function paintHeatmap() {
   }
 }
 
+// Remove the gold "optimal" outline from every cell.
 function clearHighlights() {
   document.querySelectorAll("#cost-table input.is-optimal").forEach((el) => el.classList.remove("is-optimal"));
 }
 
+// Keep only digits (max 6) while typing, then refresh the heat-map.
 function onCellInput(event) {
   const el = event.target;
   if (el.tagName !== "INPUT") return;
@@ -144,6 +174,7 @@ function onCellInput(event) {
   paintHeatmap();
 }
 
+// Fill every cell with getValue(i, j), then refresh colours and clear old results.
 function fill(getValue) {
   for (let i = 0; i < currentN; i++) {
     for (let j = 0; j < currentN; j++) cell(i, j).value = getValue(i, j);
@@ -153,10 +184,12 @@ function fill(getValue) {
   resetResult();
 }
 
+// Button actions: random values, the README example, or empty cells.
 const generateValues = () => fill(() => randCost());
 const loadExample = () => fill((i, j) => EXAMPLE[i][j]);
 const clearTable = () => fill(() => "");
 
+// Read the table into a matrix of numbers, or null if any cell is empty/invalid.
 function readMatrix() {
   const matrix = [];
   for (let i = 0; i < currentN; i++) {
@@ -209,6 +242,7 @@ async function submitJob() {
   }
 }
 
+// Ask GET /jobs/{id} every 4 s until the quantum job completes, fails or times out.
 function startPolling(jobId) {
   stopPolling();
   const started = Date.now();
@@ -242,6 +276,7 @@ function startPolling(jobId) {
   pollTimer = setTimeout(poll, POLL_INTERVAL_MS);
 }
 
+// Stop the polling timer and the seconds counter.
 function stopPolling() {
   clearTimeout(pollTimer);
   clearInterval(clockTimer);
@@ -249,6 +284,7 @@ function stopPolling() {
   clockTimer = null;
 }
 
+// Quantum job is over (either way): stop timers, hide progress, re-enable buttons.
 function finishQuantum() {
   stopPolling();
   hideQuantumStatus();
@@ -256,8 +292,10 @@ function finishQuantum() {
 }
 
 // ── Quantum progress ────────────────────────────────────────────────────────
+// The four steps of the quantum progress tracker, in order.
 const STEP_ORDER = ["queued", "submitted", "running", "verify"];
 
+// Mark tracker steps before `stage` as done and `stage` itself as active.
 function setProgress(stage) {
   // "running" also marks verification as active once the task has run a while
   const reached = stage === "done" ? STEP_ORDER.length : STEP_ORDER.indexOf(stage);
@@ -267,6 +305,7 @@ function setProgress(stage) {
   });
 }
 
+// Show the quantum progress card and start the elapsed-seconds counter.
 function showQuantumStatus(data) {
   $("quantum-status").className = "card quantum-card show";
   $("qs-info").textContent =
@@ -279,6 +318,7 @@ function showQuantumStatus(data) {
   }, 1000);
 }
 
+// Hide the quantum progress card.
 function hideQuantumStatus() {
   $("quantum-status").className = "card quantum-card";
 }
@@ -328,6 +368,7 @@ function renderQaoa(q) {
     </div>`;
 }
 
+// Outline in gold the table cells chosen by the optimal assignment.
 function highlightAssignment(pairs) {
   const analysts = analystNames(currentN);
   const threats = threatNames(currentN);
@@ -338,6 +379,7 @@ function highlightAssignment(pairs) {
   });
 }
 
+// Render the full result card: KPIs, comparison bars, assignment, QAOA panel, summary.
 function showResult(data) {
   const isQuantum = data.method === "QUANTUM";
   const cls = isQuantum ? "quantum" : "classical";
@@ -399,12 +441,14 @@ function showResult(data) {
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// Show an error message in the result card.
 function showError(msg) {
   const panel = $("result-panel");
   panel.className = "card result-card show";
   panel.innerHTML = `<div class="error-box">⚠ <span>${escapeHtml(msg)}</span></div>`;
 }
 
+// Disable/enable the controls while a request is running.
 function setSubmitting(on) {
   ["btn-submit", "btn-generate", "btn-example", "btn-clear"].forEach((id) => { $(id).disabled = on; });
   document.querySelectorAll("#size-select button").forEach((b) => { b.disabled = on; });
@@ -413,6 +457,7 @@ function setSubmitting(on) {
     : "Find optimal assignment";
 }
 
+// Clear any previous result, highlights and running job.
 function resetResult() {
   stopPolling();
   hideQuantumStatus();

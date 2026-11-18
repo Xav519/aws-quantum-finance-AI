@@ -1,13 +1,18 @@
-# =============================================================================
-# IAM: one execution role per Lambda (least privilege)
-# -----------------------------------------------------------------------------
-#   orchestrator : write job records, invoke the classical + braket functions
-#   classical    : write job records, call Bedrock
-#   braket       : read/update job records, Braket tasks, results bucket, Bedrock
-#   get_job      : read job records only
-# Every statement is scoped to a concrete ARN except the Braket task actions,
-# which do not support resource-level permissions for task creation.
-# =============================================================================
+# ==============================================================================
+# modules/iam/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Permissions: one dedicated IAM role per Lambda function (least privilege).
+#
+# DETAILS
+#   Each role can do exactly what its function needs and nothing more:
+#     orchestrator -> write job records, invoke the classical + braket functions
+#     classical    -> write job records, call Bedrock
+#     braket       -> read/update job records, run Braket tasks, S3 results, Bedrock
+#     get_job      -> read job records only
+#   Every statement names a concrete resource ARN, except Braket task actions,
+#   which AWS does not allow to scope to a resource.
+# ==============================================================================
 
 data "aws_caller_identity" "current" {}
 

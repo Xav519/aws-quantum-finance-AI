@@ -1,8 +1,16 @@
 """
-Handler tests with in-memory fakes for DynamoDB, Lambda, Braket and S3.
+==============================================================================
+tests/test_handlers.py
+------------------------------------------------------------------------------
+PURPOSE
+  End-to-end tests of the four Lambda handlers, without touching AWS.
 
-They exercise the full quantum flow end to end:
-POST /optimize -> PENDING record -> submit -> EventBridge completion -> GET /jobs/{id}.
+DETAILS
+  DynamoDB, Lambda, Braket and S3 are replaced by small in-memory fakes, so the
+  whole quantum flow can run in a second: POST -> PENDING record -> submit
+  (idempotent) -> EventBridge completion (duplicates ignored) -> GET result.
+  Also covers failed tasks, other projects' tasks, the daily quota and bad IDs.
+==============================================================================
 """
 
 import importlib.util
@@ -27,6 +35,7 @@ os.environ.update({
 
 
 def load(name, relpath):
+    """Import a handler.py under a unique module name (all four Lambdas use the same filename)."""
     spec = importlib.util.spec_from_file_location(name, os.path.join(ROOT, relpath))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -43,6 +52,7 @@ get_job = load("get_job_handler", "modules/lambda_get_job/src/handler.py")
 # Fakes
 # --------------------------------------------------------------------------- #
 def _conditional_failure():
+    """The error DynamoDB raises when a ConditionExpression is not met."""
     return ClientError({"Error": {"Code": "ConditionalCheckFailedException", "Message": ""}}, "UpdateItem")
 
 
@@ -80,6 +90,7 @@ class FakeTable:
 
 
 class FakeLambda:
+    """In-memory Lambda client: async invokes are recorded, sync invokes run the classical handler."""
     def __init__(self):
         self.calls = []
 
@@ -93,6 +104,7 @@ class FakeLambda:
 
 
 class FakeBraket:
+    """In-memory Braket client: creating a task records it as immediately COMPLETED."""
     def __init__(self):
         self.tasks = {}
 
@@ -108,6 +120,7 @@ class FakeBraket:
 
 
 class FakeS3:
+    """In-memory S3 client that always returns the given results.json payload."""
     def __init__(self, result):
         self.result = result
 
@@ -117,6 +130,7 @@ class FakeS3:
 
 @pytest.fixture
 def env(monkeypatch):
+    """Replace every AWS client with a fake, and make Bedrock unavailable (forces the fallback)."""
     table, lam, brk = FakeTable(), FakeLambda(), FakeBraket()
     for module in (orchestrator, classical, braket_handler, get_job):
         monkeypatch.setattr(module, "table", table)
@@ -131,10 +145,12 @@ def env(monkeypatch):
 
 
 def post(body):
+    """Call the orchestrator as API Gateway would for POST /optimize."""
     return orchestrator.lambda_handler({"body": json.dumps(body)}, None)
 
 
 def request(n):
+    """A valid N x N request body with deterministic costs."""
     return {
         "analysts": [f"Analyst {i}" for i in range(n)],
         "alerts": [f"Threat {i}" for i in range(n)],

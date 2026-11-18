@@ -1,10 +1,15 @@
-# =============================================================================
-# Demo frontend: private S3 bucket served over HTTPS by CloudFront
-# -----------------------------------------------------------------------------
-# The bucket is fully private; only this CloudFront distribution can read it
-# (Origin Access Control, SigV4). CloudFront adds TLS and security headers,
-# including a strict Content-Security-Policy.
-# =============================================================================
+# ==============================================================================
+# modules/demo_frontend/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Hosts the website: a private S3 bucket served over HTTPS by CloudFront.
+#
+# DETAILS
+#   Only CloudFront can read the bucket (Origin Access Control). CloudFront adds
+#   security headers, including a strict Content-Security-Policy.
+#   The site files in site/ are uploaded as-is; config.js is generated here so
+#   the page knows the API URL without any templating of the static files.
+# ==============================================================================
 
 locals {
   prefix = "${var.project}-${var.environment}"

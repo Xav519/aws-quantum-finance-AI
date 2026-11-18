@@ -1,3 +1,15 @@
+# ==============================================================================
+# modules/lambda_orchestrator/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Deploys the Orchestrator Lambda: the entry point behind POST /optimize.
+#
+# DETAILS
+#   It validates the request and routes it: small problems (N <= 4) go to the
+#   classical Lambda synchronously; N = 5 starts an asynchronous quantum job.
+#   Creates: the function (zipped from src/) and its log group (7-day retention).
+# ==============================================================================
+
 locals {
   prefix        = "${var.project}-${var.environment}"
   function_name = "${local.prefix}-orchestrator"

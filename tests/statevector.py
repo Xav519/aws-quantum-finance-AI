@@ -1,14 +1,19 @@
 """
-Minimal numpy statevector simulator used to validate the QAOA circuit offline.
+==============================================================================
+tests/statevector.py
+------------------------------------------------------------------------------
+PURPOSE
+  A small quantum computer simulator (numpy) used to check the circuit offline.
 
-Two independent paths:
-  * simulate_openqasm() - parses the exact OpenQASM source sent to Braket and
-                          applies it gate by gate (small N only)
-  * simulate_qaoa()   - applies the cost unitary as one diagonal phase and the
-                        mixer qubit by qubit (fast enough for N = 5, 25 qubits)
-
-Qubit 0 is the most significant bit of the basis-state index, matching the
-left-to-right bitstring order Braket reports.
+DETAILS
+  Two independent ways to compute the result of the QAOA circuit:
+    simulate_openqasm() -> reads the exact OpenQASM text sent to Braket and
+                           applies it gate by gate (small sizes only).
+    simulate_qaoa()     -> applies the cost step as one big phase multiplication
+                           and the mixer qubit by qubit (fast enough for 25 qubits).
+  If both agree, the circuit sent to AWS really implements the algorithm.
+  Qubit 0 is the leftmost bit, matching the order Braket reports.
+==============================================================================
 """
 
 from __future__ import annotations
@@ -22,6 +27,7 @@ import numpy as np
 # Gate-level simulator
 # --------------------------------------------------------------------------- #
 def _apply_1q(state, gate, target, num_qubits):
+    """Apply a 2x2 gate matrix to one qubit of the state vector."""
     view = state.reshape(2 ** target, 2, 2 ** (num_qubits - target - 1))
     s0, s1 = view[:, 0, :], view[:, 1, :]
     out = np.empty_like(view)
@@ -31,6 +37,7 @@ def _apply_1q(state, gate, target, num_qubits):
 
 
 def _apply_cnot(state, control, target, num_qubits):
+    """Apply a CNOT: flip the target qubit wherever the control qubit is 1."""
     state = state.reshape([2] * num_qubits).copy()
     idx = [slice(None)] * num_qubits
     idx[control] = 1
@@ -41,10 +48,12 @@ def _apply_cnot(state, control, target, num_qubits):
 
 
 def _rz(theta):
+    """Matrix of the Rz(theta) rotation gate."""
     return np.diag([np.exp(-0.5j * theta), np.exp(0.5j * theta)])
 
 
 def _rx(theta):
+    """Matrix of the Rx(theta) rotation gate."""
     c, s = np.cos(theta / 2), np.sin(theta / 2)
     return np.array([[c, -1j * s], [-1j * s, c]])
 
@@ -101,6 +110,7 @@ def z_value(idx: np.ndarray, num_qubits: int, k: int) -> np.ndarray:
 def ising_energies(h: dict, J: dict, num_qubits: int) -> np.ndarray:
     # Z values are recomputed per term rather than cached: caching all of them
     # would need ~800 MB at 25 qubits.
+    """Energy of every basis state under H = sum h Z + sum J ZZ (one number per state)."""
     idx = np.arange(2 ** num_qubits, dtype=np.int32)
     energy = np.zeros(2 ** num_qubits, dtype=np.float32)
     for k, hk in h.items():
@@ -112,6 +122,7 @@ def ising_energies(h: dict, J: dict, num_qubits: int) -> np.ndarray:
 
 
 def simulate_qaoa(h, J, gammas, betas, num_qubits, dtype=np.complex128) -> np.ndarray:
+    """Fast QAOA simulation: cost step as a phase multiply, mixer qubit by qubit. Returns probabilities."""
     energy = ising_energies(h, J, num_qubits)
     state = np.full(2 ** num_qubits, 2 ** (-num_qubits / 2), dtype=dtype)
     for gamma, beta in zip(gammas, betas):
@@ -123,10 +134,12 @@ def simulate_qaoa(h, J, gammas, betas, num_qubits, dtype=np.complex128) -> np.nd
 
 
 def index_to_bitstring(index: int, num_qubits: int) -> str:
+    """Basis-state index -> bitstring with qubit 0 first (Braket's order)."""
     return format(index, f"0{num_qubits}b")
 
 
 def sample_counts(probs: np.ndarray, shots: int, num_qubits: int, seed: int = 0) -> dict:
+    """Draw `shots` random measurements from the probabilities, like a real device would."""
     rng = np.random.default_rng(seed)
     probs = probs / probs.sum()
     samples = rng.choice(len(probs), size=shots, p=probs)

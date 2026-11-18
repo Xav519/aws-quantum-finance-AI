@@ -1,3 +1,14 @@
+# ==============================================================================
+# modules/lambda_get_job/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Deploys the get-job Lambda: answers GET /jobs/{job_id} for polling browsers.
+#
+# DETAILS
+#   It only reads a job record from DynamoDB and returns it.
+#   Creates: the function (zipped from src/) and its log group (7-day retention).
+# ==============================================================================
+
 locals {
   prefix        = "${var.project}-${var.environment}"
   function_name = "${local.prefix}-get-job"

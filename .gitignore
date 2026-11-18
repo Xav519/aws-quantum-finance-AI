@@ -1,3 +1,14 @@
+# ==============================================================================
+# .gitignore
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Tells Git which files must never be committed.
+#
+# DETAILS
+#   Mainly: Terraform state and variables (they can contain account details or
+#   secrets), locally built Lambda zip files, Python caches and the draw.io source.
+# ==============================================================================
+
 # Local .terraform directories
 .terraform/
 

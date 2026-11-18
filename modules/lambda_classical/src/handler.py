@@ -1,14 +1,17 @@
 """
-================================================================================
-LAMBDA CLASSICAL: EXACT SOC ASSIGNMENT SOLVER  (invoked by the orchestrator)
-================================================================================
-1. Solves the assignment exactly by enumerating all N! permutations
-   (N <= 4 here: at most 24, microseconds).
-2. Computes the greedy "intuition" baseline to quantify what optimisation saves.
-3. Asks Claude on Amazon Bedrock for a 3-sentence board summary
-   (deterministic fallback if Bedrock is unavailable).
-4. Persists the job (7-day TTL) and returns the public result view.
-================================================================================
+==============================================================================
+modules/lambda_classical/src/handler.py
+------------------------------------------------------------------------------
+PURPOSE
+  Classical Lambda: solves small problems (N <= 4) exactly.
+
+DETAILS
+  1. Checks all N! possible assignments and keeps the cheapest (proven optimal).
+  2. Computes the 'greedy' baseline to show how much optimization saves.
+  3. Asks Claude on Amazon Bedrock for a 3-sentence board summary
+     (a template is used if Bedrock is unavailable).
+  4. Saves the job in DynamoDB (kept 7 days) and returns the result.
+==============================================================================
 """
 
 import json
@@ -28,6 +31,7 @@ table = boto3.resource("dynamodb").Table(os.environ["DYNAMODB_TABLE"])
 
 
 def build_prompt(pairs, n, total_cost, greedy_cost, savings) -> str:
+    """Text sent to Claude: only the computed figures, wrapped in <data>, plus the writing task."""
     return f"""<data>
 Problem: assign {n} security analysts to {n} simultaneous cyber threats, one each, minimising total breach impact cost (hourly loss x hours to mitigate).
 Method: every one of the {combinations_count(n):,} possible assignments was evaluated, so the result is the proven minimum.
@@ -41,6 +45,7 @@ Write exactly 3 sentences for the board: (1) what was decided and the optimal to
 
 
 def fallback_narrative(n, total_cost, greedy_cost, savings) -> str:
+    """Template summary used when Bedrock is unavailable (same facts, no AI)."""
     comparison = (
         f"${savings:,.0f} less than the ${greedy_cost:,.0f} a greedy assignment would have cost"
         if savings > 0 else "matching the greedy assignment in this case"
@@ -54,6 +59,7 @@ def fallback_narrative(n, total_cost, greedy_cost, savings) -> str:
 
 
 def lambda_handler(event, context):
+    """Entry point (invoked by the orchestrator): solve, summarise, store, return the result."""
     job_id = event["job_id"]
     analysts = event["analysts"]
     alerts = event["alerts"]

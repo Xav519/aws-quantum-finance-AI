@@ -1,25 +1,22 @@
 """
-================================================================================
-LAMBDA BRAKET: QAOA SUBMISSION + COMPLETION HANDLER
-================================================================================
-Two entry points, one function:
+==============================================================================
+modules/lambda_braket/src/handler.py
+------------------------------------------------------------------------------
+PURPOSE
+  Braket Lambda: runs the quantum part of the 5x5 problem, in two steps.
 
-SUBMIT   (async invoke from the orchestrator: {"action": "submit", "job_id"})
-  - Loads the PENDING job written by the orchestrator.
-  - Builds the QAOA circuit as OpenQASM 3 (qaoa.py) and calls CreateQuantumTask with
-    clientToken = job_id (retries cannot create duplicate tasks) and a
-    `job_id` tag (the completion handler resolves the job from the task).
-
-COMPLETE (EventBridge "Braket Task State Change", terminal states)
-  - Reads the task's `job_id` tag; ignores tasks that are not ours.
-  - Decodes the measured bitstrings and reports QAOA quality honestly:
-    feasible-shot fraction, best sampled assignment, gap to the optimum.
-  - Computes the exact optimum classically (N! <= 120) and returns THAT as
-    the recommendation, with the QAOA metrics alongside it.
-
-Every state transition is a conditional update on status = PENDING, so
-duplicate events and Lambda retries are harmless.
-================================================================================
+DETAILS
+  SUBMIT  (called by the orchestrator with {"action": "submit", "job_id"})
+    Builds the QAOA circuit (qaoa.py) and sends it to Amazon Braket SV1.
+    clientToken = job_id  -> a retry can never create a second (billed) task.
+    tag job_id           -> lets step 2 find the job from the task.
+  COMPLETE (called by EventBridge when the Braket task finishes)
+    Reads the 1,000 measurements from S3 and reports, honestly, how good the
+    quantum answer was (valid %, optimal %, gap). Then it computes the exact
+    optimum classically, asks Bedrock for a summary and stores the result.
+  Every status change only happens if the job is still PENDING, so duplicate
+  events and retries are harmless.
+==============================================================================
 """
 
 import json
@@ -52,6 +49,7 @@ QAOA_SHOTS = int(os.environ.get("QAOA_SHOTS", "1000"))
 # State helpers
 # --------------------------------------------------------------------------- #
 def _update_if_pending(job_id: str, fields: dict) -> bool:
+    """Set fields on a job only if it is still PENDING. Returns False if it already finished."""
     names, values, sets = {"#status": "status"}, {":pending": jobs.PENDING}, []
     for i, (key, value) in enumerate(fields.items()):
         names[f"#f{i}"] = key
@@ -74,6 +72,7 @@ def _update_if_pending(job_id: str, fields: dict) -> bool:
 
 
 def _fail(job_id: str, message: str) -> None:
+    """Mark a still-PENDING job as FAILED with a message that is safe to show users."""
     _update_if_pending(job_id, {"status": jobs.FAILED, "error": message})
 
 
@@ -83,6 +82,7 @@ def _fail(job_id: str, message: str) -> None:
 def _device_parameters(num_qubits: int) -> str:
     # Required for gate-model devices; this schema is specific to simulators.
     # QPUs need their own device-parameter schema (see README, roadmap).
+    """Device settings Braket requires for simulators (here: just the qubit count)."""
     return json.dumps({
         "braketSchemaHeader": {
             "name": "braket.device_schema.simulators.gate_model_simulator_device_parameters",
@@ -97,6 +97,7 @@ def _device_parameters(num_qubits: int) -> str:
 
 
 def handle_submit(event: dict) -> dict:
+    """Step 1: build the QAOA circuit and submit it to Amazon Braket for this job."""
     job_id = event["job_id"]
     item = table.get_item(Key={"job_id": job_id}).get("Item")
     if not item:
@@ -143,12 +144,14 @@ def handle_submit(event: dict) -> dict:
 # Complete
 # --------------------------------------------------------------------------- #
 def _load_counts(task: dict):
+    """Download the task's results.json from S3 and count how often each bitstring was measured."""
     key = f"{task['outputS3Directory']}/results.json"
     obj = s3.get_object(Bucket=task["outputS3Bucket"], Key=key)
     return qaoa.counts_from_result(json.loads(obj["Body"].read()))
 
 
 def build_prompt(pairs, n, total_cost, greedy_cost, metrics) -> str:
+    """Text sent to Claude: only the computed figures, wrapped in <data>, plus the writing task."""
     if metrics["qaoa_cost"] is None:
         qaoa_line = "None of the sampled bitstrings encoded a valid assignment."
     elif metrics["qaoa_found_optimum"]:
@@ -171,6 +174,7 @@ Write exactly 3 sentences for the board: (1) the recommended assignment's total 
 
 
 def fallback_narrative(n, total_cost, greedy_cost, metrics) -> str:
+    """Template summary used when Bedrock is unavailable (same facts, no AI)."""
     if metrics["qaoa_cost"] is None:
         qaoa_text = "none of its samples encoded a valid assignment"
     elif metrics["qaoa_found_optimum"]:
@@ -187,6 +191,7 @@ def fallback_narrative(n, total_cost, greedy_cost, metrics) -> str:
 
 
 def handle_complete(event: dict) -> dict:
+    """Step 2 (EventBridge): analyse the quantum result, verify the optimum, store the job."""
     detail = event.get("detail", {})
     task_arn = detail.get("quantumTaskArn", "")
     task = braket.get_quantum_task(quantumTaskArn=task_arn)
@@ -250,6 +255,7 @@ def handle_complete(event: dict) -> dict:
 
 
 def lambda_handler(event, context):
+    """Entry point: route EventBridge events to handle_complete, submit requests to handle_submit."""
     if event.get("source") == "aws.braket":
         return handle_complete(event)
     if event.get("action") == "submit":

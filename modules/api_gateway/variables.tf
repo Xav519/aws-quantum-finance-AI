@@ -1,3 +1,13 @@
+# ==============================================================================
+# modules/api_gateway/variables.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Inputs of the `api_gateway` module (values passed in from rootTerraformCode/main.tf).
+#
+# DETAILS
+#   Each variable's `description` explains what it is used for.
+# ==============================================================================
+
 variable "project" {
   description = "Project name prefix"
   type        = string

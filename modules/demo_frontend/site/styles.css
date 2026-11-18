@@ -1,7 +1,16 @@
-/* ==========================================================================
-   Incident Response Optimizer: styles
-   No inline styles anywhere (strict CSP); dynamic values are set via CSSOM.
-   ========================================================================== */
+/*
+ * ==============================================================================
+ * modules/demo_frontend/site/styles.css
+ * ------------------------------------------------------------------------------
+ * PURPOSE
+ *   The look of the web page (dark 'security console' theme).
+ *
+ * DETAILS
+ *   Organised top to bottom like the page: design tokens (colours, fonts),
+ *   top bar, hero, cards, size selector, cost table, buttons, quantum progress,
+ *   results, QAOA panel, summary, 'how it works', footer, responsive rules.
+ * ==============================================================================
+ */
 
 :root {
   --bg:          #070b14;

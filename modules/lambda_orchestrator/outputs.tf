@@ -1,3 +1,13 @@
+# ==============================================================================
+# modules/lambda_orchestrator/outputs.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Values the `lambda_orchestrator` module exposes to other modules.
+#
+# DETAILS
+#   Read in rootTerraformCode/main.tf as module.<name>.<output>.
+# ==============================================================================
+
 output "function_arn" {
   description = "Lambda function ARN"
   value       = aws_lambda_function.orchestrator.arn

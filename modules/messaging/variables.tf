@@ -1,3 +1,13 @@
+# ==============================================================================
+# modules/messaging/variables.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Inputs of the `messaging` module (values passed in from rootTerraformCode/main.tf).
+#
+# DETAILS
+#   Each variable's `description` explains what it is used for.
+# ==============================================================================
+
 variable "project" {
   type = string
 }

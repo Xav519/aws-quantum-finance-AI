@@ -1,24 +1,22 @@
 """
-Job record helpers shared by every Lambda.
+==============================================================================
+modules/shared_layer/layer/python/qf_common/jobs.py
+------------------------------------------------------------------------------
+PURPOSE
+  Job record helpers shared by every Lambda.
 
-DynamoDB item (table `<prefix>-jobs`, hash key `job_id`):
+DETAILS
+  Defines the job statuses, timestamps/TTL, Decimal conversion for DynamoDB, and
+  result_view(), which turns a stored job into the public API response.
 
-    job_id            str   UUID v4
-    status            str   PENDING | COMPLETE | FAILED
-    method            str   CLASSICAL | QUANTUM
-    analysts, alerts  list[str]
-    cost_matrix       str   JSON-encoded N x N matrix
-    created_at        str   ISO-8601 UTC
-    expires_at        int   epoch seconds (DynamoDB TTL)
-    -- COMPLETE --
-    assignment        list[int]  optimal threat index for each analyst
-    total_cost, greedy_cost, savings, combinations_evaluated
-    narrative, narrative_source
-    qaoa              map   (QUANTUM only) QAOA sampling metrics
-    -- QUANTUM, after submission --
-    braket_task_arn, qaoa_layers, shots
-    -- FAILED --
-    error             str   user-safe failure description
+  DynamoDB item (table <prefix>-jobs, key job_id):
+    job_id, status (PENDING | COMPLETE | FAILED), method (CLASSICAL | QUANTUM),
+    analysts, alerts, cost_matrix (JSON string), created_at, expires_at (TTL)
+    COMPLETE: assignment, total_cost, greedy_cost, savings,
+              combinations_evaluated, narrative, narrative_source, qaoa (quantum)
+    QUANTUM after submission: braket_task_arn, qaoa_layers, shots, gate_count
+    FAILED: error (safe to show to users)
+==============================================================================
 """
 
 from __future__ import annotations
@@ -35,10 +33,12 @@ FAILED = "FAILED"
 
 
 def now_iso() -> str:
+    """Current UTC time as an ISO-8601 string (stored on every job)."""
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def ttl_epoch(days: int = JOB_TTL_DAYS) -> int:
+    """Epoch timestamp `days` from now; DynamoDB deletes the item after it (TTL)."""
     return int((datetime.now(timezone.utc) + timedelta(days=days)).timestamp())
 
 
@@ -56,6 +56,7 @@ def to_dynamo(obj):
 
 
 def _pairs(assignment, analysts, alerts, cost_matrix):
+    """Turn assignment indexes into readable {analyst, alert, cost} entries."""
     return [
         {"analyst": analysts[i], "alert": alerts[int(j)], "cost": cost_matrix[i][int(j)]}
         for i, j in enumerate(assignment)

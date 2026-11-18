@@ -1,3 +1,16 @@
+"""
+==============================================================================
+tests/test_validation.py
+------------------------------------------------------------------------------
+PURPOSE
+  Tests for request validation (validation.py).
+
+DETAILS
+  Valid input is accepted and cleaned; malformed, oversized, non-finite,
+  duplicate and script-like inputs are rejected with a clear error.
+==============================================================================
+"""
+
 import math
 
 import pytest
@@ -6,6 +19,7 @@ from validation import ValidationError, validate_request
 
 
 def body(n=3, **overrides):
+    """A valid request of size n; keyword arguments override individual fields."""
     data = {
         "analysts": [f"Analyst {i}" for i in range(n)],
         "alerts": [f"Threat {i}" for i in range(n)],

@@ -1,3 +1,17 @@
+"""
+==============================================================================
+tests/test_common.py
+------------------------------------------------------------------------------
+PURPOSE
+  Tests for the shared layer code (qf_common).
+
+DETAILS
+  Checks the README example numbers ($209k optimal, $233k greedy), Decimal
+  handling, the API response format, every Bedrock fallback path, and that the
+  layer folder is laid out the way Lambda requires.
+==============================================================================
+"""
+
 import json
 from decimal import Decimal
 
@@ -57,11 +71,13 @@ def test_result_view_for_pending_and_failed_jobs():
 
 
 class _FailingBedrock:
+    """Fake Bedrock client that always fails (tests the fallback path)."""
     def invoke_model(self, **_):
         raise ClientError({"Error": {"Code": "ThrottlingException", "Message": "slow down"}}, "InvokeModel")
 
 
 class _Body:
+    """Mimics the streaming body object boto3 returns."""
     def __init__(self, payload):
         self._payload = payload
 
@@ -70,6 +86,7 @@ class _Body:
 
 
 class _OkBedrock:
+    """Fake Bedrock client that returns a given payload and remembers the request."""
     def __init__(self, payload):
         self.payload = payload
         self.request = None

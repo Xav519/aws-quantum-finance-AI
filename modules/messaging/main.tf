@@ -1,3 +1,15 @@
+# ==============================================================================
+# modules/messaging/main.tf
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   The 'buzzer': tells the Braket Lambda when a quantum task has finished.
+#
+# DETAILS
+#   An EventBridge rule listens for Amazon Braket 'Task State Change' events in a
+#   final state (COMPLETED, FAILED, CANCELLED) and invokes the Braket Lambda.
+#   The Lambda then checks the task's tags and ignores tasks from other projects.
+# ==============================================================================
+
 locals {
   prefix = "${var.project}-${var.environment}"
 }

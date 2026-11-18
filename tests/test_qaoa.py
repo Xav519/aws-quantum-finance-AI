@@ -1,3 +1,20 @@
+"""
+==============================================================================
+tests/test_qaoa.py
+------------------------------------------------------------------------------
+PURPOSE
+  Tests for the quantum algorithm (qaoa.py).
+
+DETAILS
+  - The penalty formulation's best answer is exactly the optimal assignment.
+  - The Ising form equals the QUBO form (up to a constant).
+  - The OpenQASM program, simulated gate by gate, matches the theory.
+  - The program respects SV1's rules (registers, measurements, no include).
+  - The circuit makes the optimum the most likely outcome.
+  - Decoding of measurements and the reported quality metrics.
+==============================================================================
+"""
+
 import itertools
 import json
 
@@ -12,16 +29,19 @@ MEDIUM = [[72, 95, 98], [112, 31, 67], [56, 65, 111]]
 
 
 def bits_of(index, num_qubits):
+    """List of the bits of a basis-state index, qubit 0 first."""
     return [(index >> (num_qubits - 1 - k)) & 1 for k in range(num_qubits)]
 
 
 def qubo_energy(linear, quadratic, x):
+    """Evaluate the QUBO energy of a bit assignment x."""
     return sum(a * x[k] for k, a in linear.items()) + sum(
         b * x[k] * x[l] for (k, l), b in quadratic.items()
     )
 
 
 def perm_index(perm, n):
+    """Basis-state index whose bitstring encodes the given permutation."""
     return sum(1 << (n * n - 1 - (i * n + j)) for i, j in enumerate(perm))
 
 

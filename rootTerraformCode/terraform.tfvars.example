@@ -1,4 +1,14 @@
-# Copy to terraform.tfvars (git-ignored) and fill in.
+# ==============================================================================
+# rootTerraformCode/terraform.tfvars.example
+# ------------------------------------------------------------------------------
+# PURPOSE
+#   Template for your personal settings file.
+#
+# DETAILS
+#   Copy it to terraform.tfvars (which Git ignores) and edit the values.
+#   Terraform reads terraform.tfvars automatically on plan/apply.
+# ==============================================================================
+
 alert_email = "you@example.com"
 
 # S3 bucket names are global across all AWS accounts. If you are not the
