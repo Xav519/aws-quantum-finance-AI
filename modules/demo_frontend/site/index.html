@@ -3,99 +3,160 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Optimize Cyber Incident Response</title>
-  <meta name="description" content="Assign the right analyst to the right threat: exact classical optimisation and QAOA on Amazon Braket, with AI-generated board summaries."/>
+  <title>Incident Response Optimizer · Quantum-Ready on AWS</title>
+  <meta name="description" content="Assign the right analyst to the right threat: exact optimization, a 25-qubit QAOA circuit on Amazon Braket, and AI board summaries from Claude on Amazon Bedrock."/>
+  <meta name="color-scheme" content="dark"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="config.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
-<div class="page-wrapper">
 
-<!-- ── Header ── -->
-<header>
-  <h1>
-    <span class="soc">Optimize</span>
-    Cyber Incident
-    <span class="opt">Response</span>
-  </h1>
-  <p class="header-sub">
-    Minimize costs with optimal analyst assignments &nbsp;·&nbsp; Xavier Dupuis
-  </p>
-</header>
-
-<!-- ── Explainer ── -->
-<div class="explainer">
-  <div class="explainer-block problem">
-    <strong class="label">The Problem</strong>
-    When multiple cyber threats happen at the same time, choosing who handles what is hard and mistakes <strong>cost money</strong>.
+<!-- ── Top bar ─────────────────────────────────────────────── -->
+<nav class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="./">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/><circle cx="12" cy="11" r="2.5"/><path d="M12 13.5V17"/></svg>
+      </span>
+      <span class="brand-text">Incident Response <span class="brand-accent">Optimizer</span></span>
+    </a>
+    <div class="topbar-right">
+      <span class="live-pill"><span class="live-dot"></span>Live on AWS</span>
+      <a class="topbar-link" href="https://github.com/Xav519/aws-quantum-finance-AI" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.3 1.9 1.3 1.1 1.8 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.3-3.2-.1-.3-.6-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.7 1.6.2 2.9.1 3.2.8.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5z"/></svg>
+        <span>Source</span>
+      </a>
+    </div>
   </div>
-  <div class="explainer-block calculus">
-    <strong class="label">The Solution</strong>
-    <br>
-    This system finds the assignment of analysts to threats that <strong>minimizes</strong> total financial loss.
+</nav>
+
+<main class="page">
+
+  <!-- ── Hero ──────────────────────────────────────────────── -->
+  <header class="hero">
+    <p class="eyebrow">Cyber incident response · Optimization · Quantum-ready</p>
+    <h1>Assign the right analyst<br><span class="gradient-text">to the right threat.</span></h1>
+    <p class="hero-sub">
+      When several attacks hit at once, every hour costs money. Enter what each analyst would cost on each threat,
+      and get the assignment with the <strong>lowest total breach impact</strong>, proven optimal and explained for the board.
+    </p>
+
+    <ol class="steps">
+      <li class="step">
+        <span class="step-num">1</span>
+        <div><strong>Enter costs</strong><span>Breach impact if an analyst handles a threat</span></div>
+      </li>
+      <li class="step">
+        <span class="step-num">2</span>
+        <div><strong>Optimize</strong><span>Exact solver, or a 25-qubit QAOA circuit on Amazon Braket</span></div>
+      </li>
+      <li class="step">
+        <span class="step-num">3</span>
+        <div><strong>Brief the board</strong><span>Plain-English summary by Claude on Amazon Bedrock</span></div>
+      </li>
+    </ol>
+  </header>
+
+  <!-- ── Scenario ──────────────────────────────────────────── -->
+  <section class="card" aria-labelledby="scenario-title">
+    <div class="card-head">
+      <div>
+        <h2 id="scenario-title" class="card-title">Scenario</h2>
+        <p class="card-sub">Choose the team size, then fill the cost matrix (USD).</p>
+      </div>
+      <div id="mode-badge" class="mode-badge classical">
+        <span class="mode-dot"></span><span id="mode-label">Classical · exact</span>
+      </div>
+    </div>
+
+    <div class="size-row">
+      <span class="field-label" id="size-label">Analysts × threats</span>
+      <div id="size-select" class="segmented" role="radiogroup" aria-labelledby="size-label">
+        <button type="button" role="radio" data-n="2">2 × 2</button>
+        <button type="button" role="radio" data-n="3">3 × 3</button>
+        <button type="button" role="radio" data-n="4">4 × 4</button>
+        <button type="button" role="radio" data-n="5" class="seg-quantum">5 × 5 <span class="seg-tag">quantum</span></button>
+      </div>
+    </div>
+
+    <div id="info-bar" class="info-bar">Loading…</div>
+
+    <div class="table-wrap">
+      <table id="cost-table" class="cost-table"></table>
+    </div>
+    <p class="table-hint">Cells shade from <span class="hint-low">lower</span> to <span class="hint-high">higher</span> cost as you type. The optimal assignment lights up after you run it.</p>
+
+    <div class="actions">
+      <div class="actions-left">
+        <button id="btn-generate" type="button" class="btn btn-ghost">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>
+          Random values
+        </button>
+        <button id="btn-example" type="button" class="btn btn-ghost">Load README example</button>
+        <button id="btn-clear" type="button" class="btn btn-ghost">Clear</button>
+      </div>
+      <button id="btn-submit" type="button" class="btn btn-primary classical">Find optimal assignment</button>
+    </div>
+  </section>
+
+  <!-- ── Quantum progress ──────────────────────────────────── -->
+  <section id="quantum-status" class="card quantum-card" role="status" aria-live="polite">
+    <div class="qs-head">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="qs-text">
+        <h2 class="card-title">Quantum job running on Amazon Braket SV1</h2>
+        <p class="card-sub" id="qs-info"></p>
+      </div>
+      <span class="qs-timer" id="qs-timer">0 s</span>
+    </div>
+    <ol class="progress" id="qs-steps">
+      <li data-step="queued">Job accepted</li>
+      <li data-step="submitted">Circuit submitted</li>
+      <li data-step="running">Sampling 1,000 shots</li>
+      <li data-step="verify">Verify &amp; summarize</li>
+    </ol>
+  </section>
+
+  <!-- ── Result ────────────────────────────────────────────── -->
+  <section id="result-panel" class="card result-card" aria-live="polite"></section>
+
+  <!-- ── How it works ──────────────────────────────────────── -->
+  <section class="how" aria-labelledby="how-title">
+    <h2 id="how-title" class="section-title">How it works</h2>
+    <div class="how-grid">
+      <article class="how-item">
+        <span class="how-icon classical-icon" aria-hidden="true">∑</span>
+        <h3>Exact optimization</h3>
+        <p>Up to 4×4, every possible assignment is checked, so the answer is guaranteed to be the cheapest. Results return in about 2 seconds.</p>
+      </article>
+      <article class="how-item">
+        <span class="how-icon quantum-icon" aria-hidden="true">⚛</span>
+        <h3>Quantum QAOA</h3>
+        <p>At 5×5 the problem becomes a 25-qubit circuit run on Amazon Braket. The quantum answer is reported transparently and verified against the proven optimum.</p>
+      </article>
+      <article class="how-item">
+        <span class="how-icon ai-icon" aria-hidden="true">✦</span>
+        <h3>Board-ready summary</h3>
+        <p>Claude on Amazon Bedrock turns the numbers into three plain sentences, using only the computed figures and never overstating the quantum result.</p>
+      </article>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <span>Built by <strong>Xavier Dupuis</strong> · Serverless on AWS · Terraform</span>
+    <span class="footer-links">
+      <a href="https://github.com/Xav519/aws-quantum-finance-AI" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="https://www.linkedin.com/in/xavierdupuis/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+    </span>
   </div>
-  <div class="explainer-block goal">
-    <strong class="label">How</strong>
-    Up to 4×4 is solved exactly and instantly. At 5×5 a <strong>quantum</strong> QAOA circuit runs on Amazon Braket, and the answer is <strong>verified classically</strong>.
-  </div>
-</div>
+</footer>
 
-<!-- ── Config ── -->
-<div class="config-row">
-  <div class="control">
-    <label for="size-select">Team / Threat Size</label>
-    <select id="size-select">
-      <option value="2">2 Analysts · 2 Threats</option>
-      <option value="3">3 Analysts · 3 Threats</option>
-      <option value="4" selected>4 Analysts · 4 Threats</option>
-      <option value="5">5 Analysts · 5 Threats</option>
-    </select>
-  </div>
-  <div id="mode-badge" class="mode-badge classical">
-    <span id="mode-label">Classical Brute-Force</span>
-  </div>
-</div>
-
-<!-- ── Info bar ── -->
-<div id="info-bar" class="info-bar">Loading…</div>
-
-<!-- ── Chips ── -->
-<div class="chips-section">
-  <div id="analyst-chips" class="label-row"></div>
-  <div id="alert-chips"   class="label-row"></div>
-</div>
-
-<!-- ── Table ── -->
-<div class="table-wrapper">
-  <div class="table-header">
-    <span class="table-title">💰 Breach Impact Cost Matrix (USD)</span>
-  </div>
-  <table id="cost-table"></table>
-</div>
-
-<!-- ── Actions ── -->
-<div class="actions">
-  <button id="btn-generate" type="button">🎲 Generate Random Values</button>
-  <button id="btn-clear"    type="button">✕ Clear</button>
-  <button id="btn-submit"   type="button" class="classical">▶ Find Optimal Assignment</button>
-</div>
-
-<!-- ── Quantum status ── -->
-<div id="quantum-status" role="status" aria-live="polite">
-  <div class="spinner"></div>
-  <div class="qs-details">
-    <div class="qs-title">QAOA Circuit Running on Amazon Braket SV1…</div>
-    <div class="qs-sub" id="qs-info"></div>
-  </div>
-</div>
-
-<!-- ── Result ── -->
-<div id="result-panel" aria-live="polite"></div>
-
-</div><!-- /page-wrapper -->
 </body>
 </html>
