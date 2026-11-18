@@ -16,6 +16,8 @@
 
 **You don't need to know anything about quantum computing, AI or AWS to read this.** Each idea is explained from scratch. Engineers can jump straight to the [technical deep dive](#technical-deep-dive).
 
+> **Only have 5 minutes?** Read **[ExplainToMe101.md](./ExplainToMe101.md)**: the whole project in plain language, for managers and curious readers.
+
 ---
 
 ## Contents
