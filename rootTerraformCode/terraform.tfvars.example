@@ -1,0 +1,14 @@
+# Copy to terraform.tfvars (git-ignored) and fill in.
+alert_email = "you@example.com"
+
+# S3 bucket names are global across all AWS accounts. If you are not the
+# original author, pick a unique prefix (lowercase letters, digits, hyphens).
+# project = "qf-yourname"
+
+# Optional overrides
+# aws_region               = "us-east-1"
+# bedrock_model_id         = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+# qaoa_layers              = 16
+# qaoa_shots               = 1000
+# max_quantum_jobs_per_day = 50
+# extra_cors_origins       = ["http://localhost:8080"]
