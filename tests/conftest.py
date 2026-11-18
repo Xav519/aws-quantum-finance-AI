@@ -6,7 +6,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Make Lambda source importable the same way the Lambda runtime does:
 # layer code under /opt/python, function code at the zip root.
 for path in (
-    os.path.join(ROOT, "modules", "shared_layer", "python"),
+    os.path.join(ROOT, "modules", "shared_layer", "layer", "python"),
     os.path.join(ROOT, "modules", "lambda_braket", "src"),
     os.path.join(ROOT, "modules", "lambda_orchestrator", "src"),
     os.path.join(ROOT, "tests"),

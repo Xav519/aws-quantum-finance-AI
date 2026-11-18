@@ -5,11 +5,14 @@ locals {
 # --- Shared Python code (qf_common) ---
 # Bedrock client, exact/greedy solvers, job-record helpers and HTTP helpers are
 # used by several functions. Shipping them once as a layer avoids copy-pasted
-# code drifting apart between Lambdas. Lambda mounts layers under /opt, and
-# /opt/python is on sys.path, hence the python/ directory inside the zip.
+# code drifting apart between Lambdas.
+#
+# Lambda extracts layers to /opt and only /opt/python is on sys.path, so the
+# zip must contain python/qf_common/... . archive_file zips the *contents* of
+# source_dir, hence source_dir points at layer/ (which holds python/).
 data "archive_file" "layer_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/python"
+  source_dir  = "${path.module}/layer"
   output_path = "${path.module}/build/qf_common_layer.zip"
   excludes    = ["**/__pycache__/**"]
 }

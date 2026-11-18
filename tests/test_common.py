@@ -94,3 +94,15 @@ def test_bedrock_success_uses_system_prompt(monkeypatch):
 def test_bedrock_empty_or_refused_response_falls_back(monkeypatch):
     monkeypatch.setattr(bedrock, "_client", _OkBedrock({"stop_reason": "refusal", "content": []}))
     assert bedrock.generate_narrative("prompt", "fb") == ("fb", "fallback")
+
+
+def test_layer_source_is_laid_out_for_lambda():
+    """Lambda only adds /opt/python to sys.path: the layer zip (built from
+    modules/shared_layer/layer) must contain python/qf_common/."""
+    import os
+    from conftest import ROOT
+
+    layer_root = os.path.join(ROOT, "modules", "shared_layer", "layer")
+    assert os.path.isfile(os.path.join(layer_root, "python", "qf_common", "__init__.py"))
+    tf = open(os.path.join(ROOT, "modules", "shared_layer", "main.tf"), encoding="utf-8").read()
+    assert 'source_dir  = "${path.module}/layer"' in tf
