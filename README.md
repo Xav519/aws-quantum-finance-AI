@@ -236,24 +236,20 @@ AI can make things up, so it is kept on a short leash:
 4. The buzzer rings: when Braket finishes, **EventBridge** wakes the quantum Lambda up again. It reads the 1,000 measurements, computes the quality metrics, verifies the optimum, asks Claude for a summary and marks the job "complete".
 5. You pick up your order: meanwhile the browser asks every 4 seconds "is job X ready?", and shows the result as soon as it is.
 
-```mermaid
-flowchart LR
-    U["Browser"] --> CF["CloudFront<br/>website"]
-    U --> API["API Gateway<br/>rate limits, CORS"]
-    API --> O["Router λ<br/>validation, quota"]
-    O --> C["Classical λ<br/>exact solver"]
-    O -. "async" .-> Q["Quantum λ"]
-    Q --> BR["Amazon Braket<br/>SV1, 25 qubits"]
-    BR -- "task finished" --> EB["EventBridge"]
-    EB --> Q
-    C --> AI["Bedrock<br/>Claude"]
-    Q --> AI
-    C --> DB[("DynamoDB<br/>jobs")]
-    O --> DB
-    Q --> DB
-    API --> G["Status λ"] --> DB
-    BR --> S3[("S3<br/>raw results")]
-```
+### The architecture diagram
+
+<p align="center">
+  <img src="./assets/ArchitectureDiagram.drawio.png" alt="AWS architecture: CloudFront frontend, classical and quantum request flows, and cross-cutting security and monitoring" width="100%">
+</p>
+
+**How to read it:**
+
+- **Top band:** the website itself. Your browser loads it over HTTPS from **CloudFront**, which is the only thing allowed to read the private S3 bucket holding the files.
+- **Green panel (Classical Mode):** follow ① to ⑦. The request goes in, the Orchestrator sends it to the Classical Lambda, which solves it, asks Bedrock for a summary, saves it, and the answer comes straight back.
+- **Purple panel (Quantum Mode):** follow ① to ⑫. You get a job ID right away at ④; the quantum work (⑤ to ⑫) continues in the background. Meanwhile the browser polls with ⓐ ⓑ ⓒ until the job is complete.
+- **Bottom strip:** protections that apply everywhere: one permission set per component (IAM), monitoring and alarms (CloudWatch, SNS), shared code and usage limits.
+
+*Made with draw.io.*
 
 ### Infrastructure as Code
 
