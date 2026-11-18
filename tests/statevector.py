@@ -2,8 +2,8 @@
 Minimal numpy statevector simulator used to validate the QAOA circuit offline.
 
 Two independent paths:
-  * simulate_jaqcd()  - applies the JAQCD instruction list gate by gate
-                        (ground truth for what Braket SV1 receives; small N only)
+  * simulate_openqasm() - parses the exact OpenQASM source sent to Braket and
+                          applies it gate by gate (small N only)
   * simulate_qaoa()   - applies the cost unitary as one diagonal phase and the
                         mixer qubit by qubit (fast enough for N = 5, 25 qubits)
 
@@ -12,6 +12,8 @@ left-to-right bitstring order Braket reports.
 """
 
 from __future__ import annotations
+
+import re
 
 import numpy as np
 
@@ -50,21 +52,40 @@ def _rx(theta):
 _H = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
 
 
-def simulate_jaqcd(program: dict, num_qubits: int) -> np.ndarray:
+_QASM_GATE = re.compile(
+    r"^(?P<name>h|rz|rx|cnot)(?:\((?P<angle>[-+0-9.eE]+)\))?\s+q\[(?P<a>\d+)\](?:,\s*q\[(?P<b>\d+)\])?;$"
+)
+_QASM_SKIP = re.compile(r"^(OPENQASM 3\.0;|qubit\[\d+\] q;|bit\[\d+\] b;|b\[\d+\] = measure q\[\d+\];)$")
+
+
+def simulate_openqasm(source: str, num_qubits: int) -> np.ndarray:
+    """Simulate the Braket OpenQASM program produced by qaoa.to_openqasm().
+
+    Any line outside the expected subset raises, so the test also guards the
+    program's syntax.
+    """
     state = np.zeros(2 ** num_qubits, dtype=np.complex128)
     state[0] = 1
-    for ins in program["instructions"]:
-        kind = ins["type"]
-        if kind == "h":
-            state = _apply_1q(state, _H, ins["target"], num_qubits)
-        elif kind == "rz":
-            state = _apply_1q(state, _rz(ins["angle"]), ins["target"], num_qubits)
-        elif kind == "rx":
-            state = _apply_1q(state, _rx(ins["angle"]), ins["target"], num_qubits)
-        elif kind == "cnot":
-            state = _apply_cnot(state, ins["control"], ins["target"], num_qubits)
+    measured = 0
+    for line in source.strip().splitlines():
+        line = line.strip()
+        if _QASM_SKIP.match(line):
+            measured += line.startswith("b[")
+            continue
+        m = _QASM_GATE.match(line)
+        if not m:
+            raise ValueError(f"unexpected OpenQASM line: {line!r}")
+        name, a = m["name"], int(m["a"])
+        if name == "h":
+            state = _apply_1q(state, _H, a, num_qubits)
+        elif name == "rz":
+            state = _apply_1q(state, _rz(float(m["angle"])), a, num_qubits)
+        elif name == "rx":
+            state = _apply_1q(state, _rx(float(m["angle"])), a, num_qubits)
         else:
-            raise ValueError(f"unsupported gate {kind}")
+            state = _apply_cnot(state, a, int(m["b"]), num_qubits)
+    if measured != num_qubits:
+        raise ValueError("SV1 requires every qubit to be measured")
     return np.abs(state) ** 2
 
 

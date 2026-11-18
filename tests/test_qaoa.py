@@ -73,12 +73,13 @@ def test_ising_is_normalised():
 # Circuit
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("cost,p", [(SMALL, 2), (MEDIUM, 2)])
-def test_jaqcd_circuit_matches_reference_simulation(cost, p):
-    """The gate list sent to Braket implements exactly exp(-i g H_C), exp(-i b H_M)."""
+def test_openqasm_circuit_matches_reference_simulation(cost, p):
+    """The OpenQASM program sent to Braket implements exactly exp(-i g H_C), exp(-i b H_M)."""
     n = len(cost)
     num_qubits = n * n
     circuit = qaoa.build_qaoa_circuit(cost, p=p)
-    gate_level = sv.simulate_jaqcd(circuit, num_qubits)
+    assert circuit["braketSchemaHeader"]["name"] == "braket.ir.openqasm.program"
+    gate_level = sv.simulate_openqasm(circuit["source"], num_qubits)
 
     h, J = qaoa.build_ising(cost)
     gammas, betas = qaoa.linear_ramp_schedule(p, qaoa.DEFAULT_DELTA_GAMMA, qaoa.DEFAULT_DELTA_BETA)
@@ -90,15 +91,21 @@ def test_jaqcd_circuit_matches_reference_simulation(cost, p):
 def test_circuit_shape_and_payload_size_for_n5():
     n, p = 5, qaoa.DEFAULT_LAYERS
     cost = [[(i * 7 + j * 3) % 11 + 1 for j in range(n)] for i in range(n)]
-    circuit = qaoa.build_qaoa_circuit(cost, p=p)
+    gates = qaoa.build_qaoa_gates(cost, p=p)
 
     pairs_per_layer = 2 * n * (n * (n - 1) // 2)       # same-row + same-column pairs
     expected = n * n + p * (n * n + 3 * pairs_per_layer + n * n)
-    assert len(circuit["instructions"]) == expected
-    assert {g["type"] for g in circuit["instructions"]} == {"h", "rz", "rx", "cnot"}
-    assert max(g.get("target", 0) for g in circuit["instructions"]) == n * n - 1
-    # Keep the CreateQuantumTask action comfortably small.
-    assert len(json.dumps(circuit, separators=(",", ":"))) < 300_000
+    assert len(gates) == expected
+    assert {g[0] for g in gates} == {"h", "rz", "rx", "cnot"}
+
+    source = qaoa.build_qaoa_circuit(cost, p=p)["source"]
+    lines = source.strip().splitlines()
+    # SV1 rules: header, one qubit + one bit register, no include, all qubits measured
+    assert lines[:3] == ["OPENQASM 3.0;", f"qubit[{n * n}] q;", f"bit[{n * n}] b;"]
+    assert "include" not in source and "cx " not in source
+    assert lines[-(n * n):] == [f"b[{k}] = measure q[{k}];" for k in range(n * n)]
+    assert len(lines) == 3 + expected + n * n
+    assert len(json.dumps(qaoa.build_qaoa_circuit(cost, p=p))) < 200_000
 
 
 def test_qaoa_concentrates_probability_on_the_optimum():

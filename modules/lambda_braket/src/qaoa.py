@@ -114,7 +114,7 @@ def build_ising(cost_matrix, penalty: float = DEFAULT_PENALTY):
 
 
 # --------------------------------------------------------------------------- #
-# Circuit (Braket JAQCD IR)
+# Circuit (Braket OpenQASM 3)
 # --------------------------------------------------------------------------- #
 def linear_ramp_schedule(p: int, delta_gamma: float, delta_beta: float):
     """gamma_i ramps 0 -> delta_gamma, beta_i ramps delta_beta -> 0."""
@@ -126,54 +126,60 @@ def linear_ramp_schedule(p: int, delta_gamma: float, delta_beta: float):
     return gammas, betas
 
 
-def _h(target):
-    return {"type": "h", "target": target}
-
-
-def _rz(target, angle):
-    return {"type": "rz", "target": target, "angle": round(angle, 6)}
-
-
-def _rx(target, angle):
-    return {"type": "rx", "target": target, "angle": round(angle, 6)}
-
-
-def _cnot(control, target):
-    return {"type": "cnot", "control": control, "target": target}
-
-
-def build_qaoa_circuit(
+def build_qaoa_gates(
     cost_matrix,
     p: int = DEFAULT_LAYERS,
     delta_gamma: float = DEFAULT_DELTA_GAMMA,
     delta_beta: float = DEFAULT_DELTA_BETA,
     penalty: float = DEFAULT_PENALTY,
-) -> dict:
-    """Build the QAOA circuit as a Braket JAQCD program.
-
-    Measurement is implicit in JAQCD when shots > 0, so `results` is empty.
-    """
-    n = len(cost_matrix)
-    num_qubits = n * n
+) -> list[tuple]:
+    """Gate list: ("h", q), ("rz", q, angle), ("rx", q, angle), ("cnot", c, t)."""
+    num_qubits = len(cost_matrix) ** 2
     h, J = build_ising(cost_matrix, penalty)
     gammas, betas = linear_ramp_schedule(p, delta_gamma, delta_beta)
 
-    instructions = [_h(k) for k in range(num_qubits)]
+    gates = [("h", k) for k in range(num_qubits)]
     for gamma, beta in zip(gammas, betas):
         # Cost unitary exp(-i gamma H_C)
         for k in range(num_qubits):
-            instructions.append(_rz(k, 2 * gamma * h[k]))
+            gates.append(("rz", k, 2 * gamma * h[k]))
         for (k, l), coupling in sorted(J.items()):
-            instructions += [_cnot(k, l), _rz(l, 2 * gamma * coupling), _cnot(k, l)]
+            gates += [("cnot", k, l), ("rz", l, 2 * gamma * coupling), ("cnot", k, l)]
         # Mixer exp(-i beta H_M), H_M = -sum X
         for k in range(num_qubits):
-            instructions.append(_rx(k, -2 * beta))
+            gates.append(("rx", k, -2 * beta))
+    return gates
 
+
+def to_openqasm(gates: list[tuple], num_qubits: int) -> str:
+    """Serialise gates as Braket-flavoured OpenQASM 3.
+
+    SV1 constraints (from GetDevice capabilities): one qubit register, one
+    classical register, every qubit measured, contiguous indices, no
+    `include` (Braket's built-in gate names such as `cnot` are used instead
+    of stdgates.inc's `cx`).
+    """
+    lines = ["OPENQASM 3.0;", f"qubit[{num_qubits}] q;", f"bit[{num_qubits}] b;"]
+    for gate in gates:
+        name = gate[0]
+        if name == "h":
+            lines.append(f"h q[{gate[1]}];")
+        elif name in ("rz", "rx"):
+            lines.append(f"{name}({gate[2]:.6f}) q[{gate[1]}];")
+        elif name == "cnot":
+            lines.append(f"cnot q[{gate[1]}], q[{gate[2]}];")
+        else:
+            raise ValueError(f"unsupported gate {name}")
+    lines += [f"b[{k}] = measure q[{k}];" for k in range(num_qubits)]
+    return "\n".join(lines) + "\n"
+
+
+def build_qaoa_circuit(cost_matrix, **kwargs) -> dict:
+    """Build the QAOA circuit as a Braket OpenQASM program (the action JSON)."""
+    num_qubits = len(cost_matrix) ** 2
     return {
-        "braketSchemaHeader": {"name": "braket.ir.jaqcd.program", "version": "1"},
-        "instructions": instructions,
-        "results": [],
-        "basis_rotation_instructions": [],
+        "braketSchemaHeader": {"name": "braket.ir.openqasm.program", "version": "1"},
+        "source": to_openqasm(build_qaoa_gates(cost_matrix, **kwargs), num_qubits),
     }
 
 

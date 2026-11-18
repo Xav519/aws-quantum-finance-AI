@@ -6,7 +6,7 @@ Two entry points, one function:
 
 SUBMIT   (async invoke from the orchestrator: {"action": "submit", "job_id"})
   - Loads the PENDING job written by the orchestrator.
-  - Builds the QAOA circuit (qaoa.py) and calls CreateQuantumTask with
+  - Builds the QAOA circuit as OpenQASM 3 (qaoa.py) and calls CreateQuantumTask with
     clientToken = job_id (retries cannot create duplicate tasks) and a
     `job_id` tag (the completion handler resolves the job from the task).
 
@@ -110,6 +110,7 @@ def handle_submit(event: dict) -> dict:
     num_qubits = len(cost_matrix) ** 2
 
     try:
+        gate_count = len(qaoa.build_qaoa_gates(cost_matrix, p=QAOA_LAYERS))
         circuit = qaoa.build_qaoa_circuit(cost_matrix, p=QAOA_LAYERS)
         response = braket.create_quantum_task(
             clientToken=job_id,
@@ -131,10 +132,10 @@ def handle_submit(event: dict) -> dict:
         "braket_task_arn": task_arn,
         "qaoa_layers": QAOA_LAYERS,
         "shots": QAOA_SHOTS,
-        "gate_count": len(circuit["instructions"]),
+        "gate_count": gate_count,
         "submitted_at": jobs.now_iso(),
     })
-    logger.info("submit: job %s -> %s (%d gates)", job_id, task_arn, len(circuit["instructions"]))
+    logger.info("submit: job %s -> %s (%d gates)", job_id, task_arn, gate_count)
     return {"job_id": job_id, "status": jobs.PENDING, "braket_task_arn": task_arn}
 
 

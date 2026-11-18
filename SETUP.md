@@ -91,7 +91,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-Expected: `47 passed`.
+Expected: `48 passed`.
 
 ---
 
@@ -386,7 +386,7 @@ The daily quota (`max_quantum_jobs_per_day`) and API throttling cap the worst ca
 | Website returns `AccessDenied` (XML) right after deploy | CloudFront is still propagating | Wait 5-10 minutes |
 | Browser console: CORS error | Page opened from an origin other than `demo_url` | Use `demo_url`, or add your origin to `extra_cors_origins` |
 | `"narrative_source": "fallback"` | Bedrock model access not granted, or throttled | Complete [2.2](#22-enable-claude-haiku-45-on-amazon-bedrock); check the classical Lambda logs |
-| Quantum job `FAILED`: "could not be submitted" | Braket not enabled, or circuit rejected | Check `aws logs tail /aws/lambda/<prefix>-braket`. Complete [2.1](#21-enable-amazon-braket). If the error mentions the action size, set `qaoa_layers = 12` |
+| Quantum job `FAILED`: "could not be submitted" | Braket service-linked role missing, or circuit rejected | Check `aws logs tail /aws/lambda/<prefix>-braket` (in Git Bash, prefix with `MSYS_NO_PATHCONV=1`). Complete [2.1](#21-enable-amazon-braket). If the error mentions the action size, set `qaoa_layers = 12` |
 | Quantum job stays `PENDING` for more than 5 minutes | EventBridge event not delivered | Check the task in the Braket console. If it is `COMPLETED`, check the `<prefix>-braket-task-complete` rule and the Braket Lambda logs |
 | `429` on `POST /optimize` | Rate limit (1 rps) or the daily quantum quota | Wait a few seconds; the quota resets at 00:00 UTC |
 | No alarm emails | SNS subscription not confirmed | Click the link in the confirmation email (check spam) |

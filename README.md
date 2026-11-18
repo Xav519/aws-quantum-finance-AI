@@ -55,7 +55,7 @@ The result is counter-intuitive: Sarah's cheapest threat is DDoS ($37k), but the
 | **Quantum computing** | Problem translated into a QUBO/Ising model, QAOA circuit implemented from scratch, verified with a purpose-built simulator before spending on cloud quantum time |
 | **Applied AI** | Claude on Amazon Bedrock writes executive summaries limited to the computed figures, with a fallback when the AI service is unavailable |
 | **Reliability engineering** | Asynchronous workflow with idempotency (no duplicate billed jobs), safe retries, clear failure states, alarms |
-| **Software quality** | 47 automated tests, CI on every push, an offline benchmark that reproduces the published numbers |
+| **Software quality** | 48 automated tests, CI on every push, an offline benchmark that reproduces the published numbers |
 | **Communication** | Results explained for executives (AI summary), recruiters and engineers (this README) |
 
 ---
@@ -190,7 +190,7 @@ Dropping one assignment from a valid permutation saves at most `c'_max = 1` but 
 
 **2. QUBO → Ising.** Substituting `x = (1 − z)/2` gives `H_C = Σ h_k Z_k + Σ J_kl Z_k Z_l`, rescaled so the largest coefficient is 1. The angle schedule is then independent of problem size and dollar amounts.
 
-**3. Circuit (Braket JAQCD IR).**
+**3. Circuit (OpenQASM 3, Braket dialect).**
 
 ```
 |+⟩^⊗25  ──►  for i = 1..p:  e^{−iγᵢ H_C} · e^{−iβᵢ H_M}  ──►  measure (1,000 shots)
@@ -271,7 +271,7 @@ modules/
 | Errors mark the job `FAILED`, then re-raise | User sees a clear failure *and* the alarm fires |
 | Bedrock summary has a deterministic fallback | An AI outage never loses a result; `narrative_source` says which was used |
 | Linear-ramp QAOA instead of a variational loop | Each optimizer step would be a separate billed task |
-| JAQCD rather than OpenQASM | SV1 rejected the OpenQASM forms used initially (see challenges); JAQCD maps 1:1 to the circuit |
+| OpenQASM 3 with Braket's built-in gate names, no `include` | The only format SV1 accepts today; the program follows SV1's published constraints (one register each, all qubits measured) and is checked by a test that parses and simulates the exact source |
 | Shared code as a **Lambda layer** | Defined once instead of copy-pasted per function |
 | arm64, pure Python | Cheaper, faster cold starts, nothing to compile |
 | Log groups created before each function; `moved` blocks | Retention from the first invocation; existing deployments migrate without recreation |
@@ -282,14 +282,14 @@ modules/
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                                               # 47 tests, ~1 s
+pytest                                               # 48 tests, ~1 s
 python tests/benchmark_qaoa.py                       # performance table, N = 3 and 4
 python tests/benchmark_qaoa.py --n 5 --instances 5   # 25 qubits, ~3 min per instance
 ```
 
 | Suite | What it proves |
 |---|---|
-| `test_qaoa.py` | QUBO ground state = optimal assignment; Ising ≡ QUBO up to a constant; **the JAQCD gate list, simulated gate by gate, equals the reference QAOA evolution**; the optimum is the most likely outcome; decoding and metrics |
+| `test_qaoa.py` | QUBO ground state = optimal assignment; Ising ≡ QUBO up to a constant; **the exact OpenQASM program sent to Braket, parsed and simulated gate by gate, equals the reference QAOA evolution**; the optimum is the most likely outcome; decoding and metrics |
 | `test_handlers.py` | End-to-end quantum flow with in-memory AWS fakes: 202 → idempotent submit → completion (duplicate event ignored) → 200; failed and foreign tasks; daily quota; ID validation |
 | `test_validation.py` | Malformed, oversized, non-finite, duplicate and injection-style inputs are rejected |
 | `test_common.py` | The README example values, Bedrock fallback paths, DynamoDB/JSON serialization |
@@ -407,8 +407,8 @@ That is the short version. **[SETUP.md](SETUP.md)** covers the one-time AWS acco
 
 | # | Issue | Root cause | Fix |
 |---|---|---|---|
-| 1 | `ValidationException: include statements not supported` | OpenQASM 3.0 `include "stdgates.inc"` rejected by SV1 | Rewrote circuit generation in JAQCD JSON IR |
-| 2 | `ValidationException: cx gate not supported` | OpenQASM 2.0 `cx` rejected | JAQCD `{"type": "cnot", ...}` |
+| 1 | `ValidationException: include statements not supported` | OpenQASM 3.0 `include "stdgates.inc"` rejected by SV1 | Moved to JAQCD JSON IR (later back to OpenQASM without `include`, see #24) |
+| 2 | `ValidationException: cx gate not supported` | `cx` comes from `stdgates.inc`; Braket's built-in name is `cnot` | Use Braket gate names (`cnot`, `rz`, `rx`, `h`) |
 | 3 | `Provided action is not valid` | JAQCD gates used `"gate"`; the field is `"type"` | Verified against `amazon-braket-schemas-python` |
 | 4 | `results field invalid` | Measurement is implicit in JAQCD | `results: []` |
 | 5 | `paradigmParameters is missing` | `CreateQuantumTask` needs `deviceParameters` | Added simulator device parameters with `qubitCount` |
@@ -433,7 +433,7 @@ That is the short version. **[SETUP.md](SETUP.md)** covers the one-time AWS acco
 </details>
 
 <details>
-<summary><b>Second iteration: hardening review (9 findings)</b></summary>
+<summary><b>Second iteration: hardening review and redeployment (11 findings)</b></summary>
 
 | # | Finding | Fix |
 |---|---|---|
@@ -445,7 +445,9 @@ That is the short version. **[SETUP.md](SETUP.md)** covers the one-time AWS acco
 | 20 | Retries could duplicate quantum tasks | `clientToken` + conditional transitions |
 | 21 | Shared IAM role with wildcard resources | One scoped role per function |
 | 22 | `innerHTML` with API data; public HTTP bucket | Escaping, CSP, CloudFront + OAC |
-| 23 | No tests | 47 tests, CI, benchmark |
+| 23 | No tests | 48 tests, CI, benchmark |
+| 24 | Redeploy: `Device ... sv1 supports ['braket.ir.openqasm.program'] action type, but the supplied action type is braket.ir.jaqcd.program` | SV1 dropped JAQCD since the first version. Queried `GetDevice` capabilities and re-emitted the same circuit as OpenQASM 3 within SV1's constraints; the test now simulates the exact OpenQASM text |
+| 25 | Redeploy: `Runtime.ImportModuleError: No module named 'qf_common'` | `archive_file` zips the *contents* of `source_dir`, so the layer lacked the `python/` prefix Lambda requires. Moved code to `layer/python/` and added a layout test |
 
 </details>
 
