@@ -1,155 +1,96 @@
 """
 ================================================================================
-LAMBDA CLASSICAL: BRUTE-FORCE SOC ASSIGNMENT OPTIMIZER
+LAMBDA CLASSICAL: EXACT SOC ASSIGNMENT SOLVER  (invoked by the orchestrator)
 ================================================================================
-OVERVIEW:
-  This Lambda provides a deterministic, classical solution to the Analyst-to-Alert 
-  assignment problem. It is designed for smaller datasets where 
-  evaluating every possibility is faster than setting up a quantum circuit.
-
-CORE LOGIC:
-  1. CLASSICAL MATH: Uses 'itertools.permutations' to brute-force the global 
-     optimum by calculating the 'Breach Impact Cost' for every possible pairing.
-  2. COMPARATIVE ANALYSIS: Calculates a "Worst Case" scenario to determine 
-     the theoretical financial savings achieved by the optimization.
-  3. GEN-AI (BEDROCK): Leverages Claude 4.5 to transform raw cost matrices into 
-     a 3-sentence, board-ready CISO narrative.
-
-INTEGRATIONS:
-  - Amazon Bedrock (Claude 4.5): Humanizes technical optimization results.
-  - Amazon DynamoDB: Records final results with a 7-day Time-to-Live (TTL).
+1. Solves the assignment exactly by enumerating all N! permutations
+   (N <= 4 here: at most 24, microseconds).
+2. Computes the greedy "intuition" baseline to quantify what optimisation saves.
+3. Asks Claude on Amazon Bedrock for a 3-sentence board summary
+   (deterministic fallback if Bedrock is unavailable).
+4. Persists the job (7-day TTL) and returns the public result view.
 ================================================================================
 """
 
 import json
+import logging
 import os
-import itertools
+
 import boto3
-from math import factorial
-from datetime import datetime, timezone, timedelta
 
-# --- AWS Service Setup ---
-# Bedrock is used here to generate the "Executive Narrative"
-bedrock  = boto3.client("bedrock-runtime", region_name="us-east-1")
-dynamodb = boto3.resource("dynamodb")
-table    = dynamodb.Table(os.environ["DYNAMODB_TABLE"])
-# Uses Claude 4.5 by default if not specified in environment variables
-MODEL_ID = os.environ.get("BEDROCK_MODEL", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
+from qf_common import jobs
+from qf_common.bedrock import generate_narrative
+from qf_common.solver import combinations_count, solve_exact, solve_greedy
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+table = boto3.resource("dynamodb").Table(os.environ["DYNAMODB_TABLE"])
 
 
-def call_bedrock(prompt: str, max_tokens: int = 400) -> str:
-    """
-    Sends a prompt to Amazon Bedrock (Anthropic Claude) and returns the text response.
-    """
-    body = {
-        "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": max_tokens,
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    resp = bedrock.invoke_model(
-        modelId=MODEL_ID,
-        body=json.dumps(body),
-        contentType="application/json",
-        accept="application/json",
+def build_prompt(pairs, n, total_cost, greedy_cost, savings) -> str:
+    return f"""<data>
+Problem: assign {n} security analysts to {n} simultaneous cyber threats, one each, minimising total breach impact cost (hourly loss x hours to mitigate).
+Method: every one of the {combinations_count(n):,} possible assignments was evaluated, so the result is the proven minimum.
+Optimal assignment: {json.dumps(pairs)}
+Optimal total breach impact cost: ${total_cost:,.0f}
+Greedy baseline (each analyst in turn takes their cheapest open threat): ${greedy_cost:,.0f}
+Saving versus greedy: ${savings:,.0f}
+</data>
+
+Write exactly 3 sentences for the board: (1) what was decided and the optimal total exposure, (2) why it is guaranteed optimal and how it compares with the greedy baseline, (3) what this means for incident-response risk. Format dollar amounts with commas."""
+
+
+def fallback_narrative(n, total_cost, greedy_cost, savings) -> str:
+    comparison = (
+        f"${savings:,.0f} less than the ${greedy_cost:,.0f} a greedy assignment would have cost"
+        if savings > 0 else "matching the greedy assignment in this case"
     )
-    return json.loads(resp["body"].read())["content"][0]["text"]
-
-
-def brute_force(cost_matrix: list) -> tuple:
-    """
-    The "Classical" math: checks EVERY possible analyst-to-alert pair.
-    For N=4, there are 24 combinations. For N=10, there are 3.6 million!
-    """
-    n         = len(cost_matrix)
-    best_cost = float("inf")
-    best_perm = None
-    # itertools.permutations generates every possible pairing order
-    for perm in itertools.permutations(range(n)):
-        # Calculate total cost for THIS specific combination
-        cost = sum(cost_matrix[i][perm[i]] for i in range(n))
-        # If this is the cheapest we've seen so far, save it
-        if cost < best_cost:
-            best_cost = cost
-            best_perm = list(perm)
-    return best_perm, best_cost
+    return (
+        f"All {combinations_count(n):,} possible assignments of {n} analysts to {n} active threats were "
+        f"evaluated, and the selected assignment minimises total breach impact at ${total_cost:,.0f}. "
+        f"That is {comparison}. Because every alternative was checked, no other assignment carries "
+        f"lower financial exposure."
+    )
 
 
 def lambda_handler(event, context):
-    """
-    Main Logic: Receives the job, solves it, asks AI to explain it, and saves it.
-    """
-    job_id      = event.get("job_id", context.aws_request_id)
-    analysts    = event["analysts"]
-    alerts      = event["alerts"]
+    job_id = event["job_id"]
+    analysts = event["analysts"]
+    alerts = event["alerts"]
     cost_matrix = event["cost_matrix"]
-    n           = len(analysts)
+    n = len(analysts)
 
-    # 1. RUN THE MATH: Find the best assignment and the total cost
-    assignment, total_cost = brute_force(cost_matrix)
+    assignment, total_cost = solve_exact(cost_matrix)
+    _, greedy_cost = solve_greedy(cost_matrix)
+    savings = greedy_cost - total_cost
+
     pairs = [
-        {
-            "analyst": analysts[i],
-            "alert":   alerts[assignment[i]],
-            "cost":    cost_matrix[i][assignment[i]],
-        }
-        for i in range(n)
+        {"analyst": analysts[i], "alert": alerts[j], "cost": cost_matrix[i][j]}
+        for i, j in enumerate(assignment)
     ]
+    narrative, narrative_source = generate_narrative(
+        build_prompt(pairs, n, total_cost, greedy_cost, savings),
+        fallback_narrative(n, total_cost, greedy_cost, savings),
+    )
 
-    # 2. CALCULATE SAVINGS: Just for the board report to show efficiency
-    all_costs   = [cost_matrix[i][j] for i in range(n) for j in range(n)]
-    worst_case  = sum(sorted(all_costs, reverse=True)[:n])
-    savings     = worst_case - total_cost
-
-    # 3. GENERATE THE STORY: Ask Bedrock to act as a CISO
-    prompt = f"""
-You are the Chief Information Security Officer (CISO) of a major bank presenting to the board.
-
-Your Security Operations Center just used a brute-force optimization algorithm to find the globally optimal assignment of analysts to active cyber threats.
-It evaluated every possible combination ({factorial(n):,} total) to find the absolute minimum financial exposure.
-
-Assignment result:
-{json.dumps(pairs, indent=2)}
-
-Total breach impact cost (optimal): ${total_cost:,.0f}
-Combinations evaluated: {factorial(n):,}
-
-Write exactly 3 sentences for a board-level audience:
-1. What was optimized: the assignment of {n} SOC analysts to {n} active cyber threats, minimizing total breach impact cost in dollars.
-2. The key insight: why brute-force guarantees the global optimum (not a greedy local minimum), and what the total financial exposure is.
-3. The business value: what this means for the bank's risk posture and incident response efficiency.
-
-STRICT RULES:
-- Output exactly 3 sentences, no more, no less
-- Do NOT include a title, header, or markdown
-- Do NOT include line breaks
-- Start directly with the first sentence
-- No bullet points
-
-Confident, executive tone. Dollar amounts should be formatted with commas.
-"""
-    narrative = call_bedrock(prompt, max_tokens=350)
-
-    # 4. PERSISTENCE: Save the result to DynamoDB with a 7-day expiration (TTL)
-    ttl = int((datetime.now(timezone.utc) + timedelta(days=7)).timestamp())
-    table.put_item(Item={
-        "job_id":     job_id,
-        "status":     "COMPLETE",
-        "method":     "CLASSICAL",
+    record = {
+        "job_id": job_id,
+        "status": jobs.COMPLETE,
+        "method": "CLASSICAL",
+        "analysts": analysts,
+        "alerts": alerts,
+        "cost_matrix": json.dumps(cost_matrix),
         "assignment": assignment,
-        "total_cost": str(round(total_cost, 2)),
-        "narrative":  narrative,
-        "analysts":   analysts,
-        "alerts":     alerts,
-        "timestamp":  datetime.now(timezone.utc).isoformat(),
-        "expires_at": ttl,
-    })
-
-    # 5. RETURN: Send the final data back to the Orchestrator/API
-    return {
-        "job_id":     job_id,
-        "status":     "COMPLETE",
-        "method":     "CLASSICAL",
-        "assignment": pairs,
-        "total_cost": round(total_cost, 2),
-        "narrative":  narrative,
+        "total_cost": total_cost,
+        "greedy_cost": greedy_cost,
+        "savings": savings,
+        "combinations_evaluated": combinations_count(n),
+        "narrative": narrative,
+        "narrative_source": narrative_source,
+        "created_at": jobs.now_iso(),
+        "expires_at": jobs.ttl_epoch(),
     }
+    table.put_item(Item=jobs.to_dynamo(record))
+    logger.info("job %s: classical optimum %s (greedy %s)", job_id, total_cost, greedy_cost)
+    # Return the plain-Python record: the Lambda runtime cannot serialise Decimal.
+    return jobs.result_view(record)

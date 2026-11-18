@@ -1,15 +1,30 @@
 variable "project" {
-  type = string
+  description = "Project name prefix"
+  type        = string
 }
 
 variable "environment" {
-  type = string
+  description = "Deployment environment"
+  type        = string
 }
 
-variable "lambda_role_arn" {
-  type = string
+variable "role_arn" {
+  description = "Execution role ARN"
+  type        = string
+}
+
+variable "layer_arn" {
+  description = "ARN of the shared qf_common layer"
+  type        = string
 }
 
 variable "dynamodb_table_name" {
-  type = string
+  description = "DynamoDB jobs table name"
+  type        = string
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch log retention"
+  type        = number
+  default     = 7
 }

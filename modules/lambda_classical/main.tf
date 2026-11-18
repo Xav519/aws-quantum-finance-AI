@@ -1,45 +1,42 @@
 locals {
   prefix        = "${var.project}-${var.environment}"
   function_name = "${local.prefix}-classical"
-  src_dir       = "${path.module}/src"
-  zip_path      = "${path.module}/lambda_classical.zip"
 }
 
-# --- Build Process ---
-# Automatically packages the 'src' directory into a .zip file.
-# This data source runs every time 'terraform plan' or 'apply' is executed.
+# Packages src/ on every plan; the hash below triggers a redeploy on any code change.
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = local.src_dir
-  output_path = local.zip_path
+  source_dir  = "${path.module}/src"
+  output_path = "${path.module}/build/lambda_classical.zip"
+  excludes    = ["**/__pycache__/**"]
+}
+
+resource "aws_cloudwatch_log_group" "this" {
+  name              = "/aws/lambda/${local.function_name}"
+  retention_in_days = var.log_retention_days
 }
 
 resource "aws_lambda_function" "classical" {
   function_name    = local.function_name
-  description      = "Brute-force assignment optimizer with Bedrock humanization"
-  role             = var.lambda_role_arn
-  # Standard Python handler (filename.function_name)
+  description      = "Exact (N!) assignment solver + greedy baseline + Bedrock board narrative"
+  role             = var.role_arn
   handler          = "handler.lambda_handler"
   runtime          = "python3.12"
-  filename         = local.zip_path
-  # RE-DEPLOYMENT TRIGGER:
-  # This hash ensures that if you change a single line of Python code, 
-  # Terraform detects the change and pushes the new zip to AWS.
+  architectures    = ["arm64"]
+  filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  # EXECUTION LIMITS:
-  # 60s is plenty for classical permutations and a Bedrock API call.
-  # 256MB is efficient for standard mathematical operations in Python.
-  timeout          = 60
+  layers           = [var.layer_arn]
+  timeout          = 25 # must stay below the orchestrator's 30 s timeout
   memory_size      = 256
 
-  # ENVIRONMENT VARIABLES:
-  # These allow the Python code to interact with other AWS services without hardcoding names.
   environment {
     variables = {
       DYNAMODB_TABLE = var.dynamodb_table_name
-      BEDROCK_MODEL  = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+      BEDROCK_MODEL  = var.bedrock_model_id
     }
   }
+
+  depends_on = [aws_cloudwatch_log_group.this]
 
   tags = {
     Project     = var.project

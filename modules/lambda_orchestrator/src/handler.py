@@ -1,142 +1,157 @@
-
 """
 ================================================================================
-LAMBDA ORCHESTRATOR: HYBRID QUANTUM-CLASSICAL ROUTER
+LAMBDA ORCHESTRATOR: HYBRID QUANTUM-CLASSICAL ROUTER  (POST /optimize)
 ================================================================================
-OVERVIEW:
-  The entry point for all optimization requests. This Lambda acts as a traffic 
-  controller, validating input data and determining the most efficient solver 
-  based on problem complexity (N-size).
-
-ROUTING LOGIC:
-  1. CLASSICAL PATH (N <= Threshold):
-     - Uses 'RequestResponse' (Synchronous). 
-     - Waits for the Classical Lambda to finish and returns the result immediately.
-  2. QUANTUM PATH (N > Threshold):
-     - Uses 'Event' (Asynchronous). 
-     - Dispatches the task to the Braket Lambda and returns a 202 Accepted 
-       response with a Job ID for polling.
-
-VALIDATION:
-  - Enforces strict dimension matching between Analysts, Alerts, and Costs.
-  - Limits problem size (2-5) to manage simulator costs and complexity.
+1. Validates the request (validation.py).
+2. Routes by problem size N:
+   - N <= CLASSICAL_THRESHOLD -> classical Lambda, synchronous, 200 + result.
+   - N >  CLASSICAL_THRESHOLD -> quantum path, asynchronous, 202 + job_id:
+       a. enforces a daily quantum-job quota (cost guard for a public API),
+       b. writes the PENDING job record FIRST, so GET /jobs/{id} can never 404
+          for an accepted job, even if a later step fails,
+       c. invokes the Braket Lambda asynchronously (InvocationType=Event).
 ================================================================================
 """
 
+import base64
 import json
+import logging
 import os
 import uuid
+from datetime import datetime, timezone
+
 import boto3
+from botocore.exceptions import ClientError
 
-# --- AWS Service Initialization ---
+from qf_common import jobs
+from qf_common.http import json_response
+from validation import ValidationError, validate_request
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 lambda_client = boto3.client("lambda")
-dynamodb      = boto3.resource("dynamodb")
-# Accesses a DynamoDB table defined in my Lambda environment variables
-table         = dynamodb.Table(os.environ["DYNAMODB_TABLE"])
+table = boto3.resource("dynamodb").Table(os.environ["DYNAMODB_TABLE"])
 
-# --- Configuration Settings ---
-# These variables tell the code which other Lambda functions to call
-LAMBDA_CLASSICAL    = os.environ["LAMBDA_CLASSICAL"]
-LAMBDA_BRAKET       = os.environ["LAMBDA_BRAKET"]
-# Default threshold: if N > 4, it switches to Quantum mode
+LAMBDA_CLASSICAL = os.environ["LAMBDA_CLASSICAL"]
+LAMBDA_BRAKET = os.environ["LAMBDA_BRAKET"]
 CLASSICAL_THRESHOLD = int(os.environ.get("CLASSICAL_THRESHOLD", "4"))
+MAX_QUANTUM_JOBS_PER_DAY = int(os.environ.get("MAX_QUANTUM_JOBS_PER_DAY", "50"))
+QAOA_SHOTS = int(os.environ.get("QAOA_SHOTS", "1000"))
+MAX_BODY_BYTES = 16 * 1024
+
+
+def _parse_body(event: dict) -> dict:
+    raw = event.get("body") or "{}"
+    if event.get("isBase64Encoded"):
+        raw = base64.b64decode(raw).decode("utf-8")
+    if len(raw) > MAX_BODY_BYTES:
+        raise ValidationError("request body too large")
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValidationError("request body is not valid JSON") from exc
+
+
+def _reserve_quantum_quota() -> bool:
+    """Atomically increment today's quantum-job counter. False if exhausted."""
+    day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    try:
+        table.update_item(
+            Key={"job_id": f"quota#{day}"},
+            UpdateExpression="ADD submitted :one SET expires_at = :ttl",
+            ConditionExpression="attribute_not_exists(submitted) OR submitted < :max",
+            ExpressionAttributeValues={
+                ":one": 1,
+                ":max": MAX_QUANTUM_JOBS_PER_DAY,
+                ":ttl": jobs.ttl_epoch(2),
+            },
+        )
+        return True
+    except ClientError as exc:
+        if exc.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            return False
+        raise
+
+
+def _run_classical(payload: dict) -> dict:
+    resp = lambda_client.invoke(
+        FunctionName=LAMBDA_CLASSICAL,
+        InvocationType="RequestResponse",
+        Payload=json.dumps(payload),
+    )
+    result = json.loads(resp["Payload"].read())
+    if resp.get("FunctionError"):
+        logger.error("Classical solver failed: %s", result)
+        return json_response(502, {"error": "The classical solver failed. Please retry."})
+    return json_response(200, result)
+
+
+def _run_quantum(payload: dict) -> dict:
+    if not _reserve_quantum_quota():
+        return json_response(429, {
+            "error": "Daily quantum job limit reached for this demo. Please try again tomorrow, "
+                     "or use N <= 4 for the instant classical solver."
+        })
+
+    n = len(payload["analysts"])
+    job_id = payload["job_id"]
+    table.put_item(
+        Item={
+            "job_id": job_id,
+            "status": jobs.PENDING,
+            "method": "QUANTUM",
+            "analysts": payload["analysts"],
+            "alerts": payload["alerts"],
+            "cost_matrix": json.dumps(payload["cost_matrix"]),
+            "created_at": jobs.now_iso(),
+            "expires_at": jobs.ttl_epoch(),
+        },
+        ConditionExpression="attribute_not_exists(job_id)",
+    )
+
+    try:
+        lambda_client.invoke(
+            FunctionName=LAMBDA_BRAKET,
+            InvocationType="Event",  # fire-and-forget: no response payload
+            Payload=json.dumps({"action": "submit", "job_id": job_id}),
+        )
+    except ClientError:
+        logger.exception("Failed to dispatch quantum job %s", job_id)
+        table.update_item(
+            Key={"job_id": job_id},
+            UpdateExpression="SET #s = :failed, #e = :err",
+            ExpressionAttributeNames={"#s": "status", "#e": "error"},
+            ExpressionAttributeValues={":failed": jobs.FAILED, ":err": "Could not dispatch the quantum job."},
+        )
+        return json_response(502, {"error": "Could not dispatch the quantum job. Please retry."})
+
+    return json_response(202, {
+        "job_id": job_id,
+        "status": jobs.PENDING,
+        "method": "QUANTUM",
+        "qubits": n * n,
+        "shots": QAOA_SHOTS,
+        "message": f"QAOA circuit ({n * n} qubits, {QAOA_SHOTS:,} shots) queued for Amazon Braket SV1.",
+    })
 
 
 def lambda_handler(event, context):
-    """
-    Main entry point: Receives analysts/alerts data and routes it
-    to the appropriate solver.
-    """
-    # 1. Parse the incoming JSON data
-    body = event.get("body", "{}")
-    if isinstance(body, str):
-        try:
-            body = json.loads(body)
-        except json.JSONDecodeError:
-            return api_response(400, {"error": "Invalid JSON body"})
+    try:
+        analysts, alerts, cost_matrix = validate_request(_parse_body(event))
+    except ValidationError as exc:
+        return json_response(400, {"error": str(exc)})
 
-    # 2. Extract input data (Analysts, Alerts, and the Cost Matrix)
-    analysts    = body.get("analysts")
-    alerts      = body.get("alerts")
-    cost_matrix = body.get("cost_matrix")
-
-    # 3. Validation: Ensure all necessary data is present
-    if not analysts or not alerts or not cost_matrix:
-        return api_response(400, {
-            "error": "Missing required fields: analysts, alerts, cost_matrix"
-        })
-
-    n = len(analysts)
-
-    # 4. Dimension Check: Ensure the lists are the same size
-    if n != len(alerts) or n != len(cost_matrix):
-        return api_response(400, {
-            "error": "analysts, alerts, and cost_matrix dimensions must all match"
-        })
-
-    # 5. Boundary Check: This specific logic only handles small scale (2 to 5)
-    if n < 2 or n > 5:
-        return api_response(400, {
-            "error": "Problem size must be between 2 and 5"
-        })
-
-    # 6. Generate a unique ID for this specific calculation job
-    job_id  = str(uuid.uuid4())
     payload = {
-        "job_id":      job_id,
-        "analysts":    analysts,
-        "alerts":      alerts,
+        "job_id": str(uuid.uuid4()),
+        "analysts": analysts,
+        "alerts": alerts,
         "cost_matrix": cost_matrix,
     }
+    n = len(analysts)
+    logger.info("job %s: N=%d route=%s", payload["job_id"], n,
+                "classical" if n <= CLASSICAL_THRESHOLD else "quantum")
 
-    # 7. ROUTING LOGIC: Small problem? Use Classical. Large problem? Use Quantum.
     if n <= CLASSICAL_THRESHOLD:
-        # --- CLASSICAL ROUTE ---
-        # Calls a standard Lambda function and waits for the immediate result
-        resp   = lambda_client.invoke(
-            FunctionName=LAMBDA_CLASSICAL,
-            InvocationType="RequestResponse",
-            Payload=json.dumps(payload),
-        )
-        result = json.loads(resp["Payload"].read())
-
-        if "errorMessage" in result:
-            return api_response(500, {"error": result["errorMessage"]})
-
-        return api_response(200, result)
-
-    else:
-        # --- QUANTUM ROUTE ---
-        lambda_client.invoke(
-            FunctionName=LAMBDA_BRAKET,
-            InvocationType="Event",   # fire-and-forget — no payload comes back
-            Payload=json.dumps(payload),
-        )
-
-        # FIX: removed braket_resp["Payload"].read() — Event invocations
-        # return an empty payload, so json.loads() was crashing with JSONDecodeError.
-        return api_response(202, {
-            "job_id":  job_id,
-            "status":  "PENDING",
-            "method":  "QUANTUM",
-            "qubits":  n * n,
-            "shots":   1000,
-            "message": (
-                f"N={n} exceeds classical threshold ({CLASSICAL_THRESHOLD}). "
-                f"QAOA circuit ({n*n} qubits, 1000 shots) submitted to Amazon Braket SV1."
-            ),
-        })
-
-
-def api_response(status_code: int, body: dict) -> dict:
-    """
-    Helper function to format the output for AWS API Gateway.
-    """
-    return {
-        "statusCode": status_code,
-        "headers": {
-            "Content-Type":                "application/json",
-            "Access-Control-Allow-Origin": "*", # CORS enabled
-        },
-        "body": json.dumps(body),
-    }
+        return _run_classical(payload)
+    return _run_quantum(payload)

@@ -1,41 +1,41 @@
 locals {
   prefix        = "${var.project}-${var.environment}"
   function_name = "${local.prefix}-get-job"
-  src_dir       = "${path.module}/src"
-  zip_path      = "${path.module}/lambda_get_job.zip"
 }
 
-# --- Build Process ---
-# Automatically packages the 'src' directory into a .zip file.
-# This data source runs every time 'terraform plan' or 'apply' is executed.
+# Packages src/ on every plan; the hash below triggers a redeploy on any code change.
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = local.src_dir
-  output_path = local.zip_path
+  source_dir  = "${path.module}/src"
+  output_path = "${path.module}/build/lambda_get_job.zip"
+  excludes    = ["**/__pycache__/**"]
 }
 
-# --- Lambda Function Resource ---
+resource "aws_cloudwatch_log_group" "this" {
+  name              = "/aws/lambda/${local.function_name}"
+  retention_in_days = var.log_retention_days
+}
+
 resource "aws_lambda_function" "get_job" {
   function_name    = local.function_name
-  description      = "Returns job status and result from DynamoDB for async quantum flow"
-  role             = var.lambda_role_arn
+  description      = "GET /jobs/{job_id}: job status and result from DynamoDB"
+  role             = var.role_arn
   handler          = "handler.lambda_handler"
   runtime          = "python3.12"
-  filename         = local.zip_path
-  # RE-DEPLOYMENT TRIGGER:
-  # This hash ensures that if you change a single line of Python code, 
-  # Terraform detects the change and pushes the new zip to AWS.
+  architectures    = ["arm64"]
+  filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  timeout          = 15
+  layers           = [var.layer_arn]
+  timeout          = 10
   memory_size      = 128
 
-  # ENVIRONMENT VARIABLES:
-  # These allow the Python code to interact with other AWS services without hardcoding names.
   environment {
     variables = {
       DYNAMODB_TABLE = var.dynamodb_table_name
     }
   }
+
+  depends_on = [aws_cloudwatch_log_group.this]
 
   tags = {
     Project     = var.project
