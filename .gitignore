@@ -45,3 +45,8 @@ __pycache__/
 
 # Remove my source draw.io file
 *.drawio
+.pytest_cache/
+.venv/
+
+# Terraform-built Lambda packages
+build/

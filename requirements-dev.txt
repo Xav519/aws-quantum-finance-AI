@@ -1,0 +1,5 @@
+# Local development and CI only. The Lambdas use the runtime's bundled boto3
+# and have no third-party dependencies.
+boto3>=1.34
+numpy>=1.26
+pytest>=8.0
