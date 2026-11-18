@@ -4,17 +4,22 @@ variable "project" {
 }
 
 variable "environment" {
-  description = "Deployment environment (e.g. dev, prod)"
+  description = "Deployment environment"
   type        = string
 }
 
 variable "aws_region" {
-  description = "AWS region — passed through to CloudWatch dashboard widget properties"
+  description = "AWS region, required by CloudWatch dashboard widgets"
   type        = string
 }
 
 variable "alert_email" {
-  description = "Email address for SNS alarm notifications"
+  description = "Email address that receives alarm notifications"
+  type        = string
+}
+
+variable "api_id" {
+  description = "HTTP API ID"
   type        = string
 }
 
