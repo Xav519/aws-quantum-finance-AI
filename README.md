@@ -1,554 +1,474 @@
 # Quantum-Ready Incident Response Optimization on AWS
 ### Assign the right analyst to the right threat
 
-> **A production-style AWS system that combines classical optimization, quantum algorithms (QAOA), and AI to minimize financial impact during cyber incidents.**
-
-**Why quantum?** Not to replace classical methods today, but to prepare for optimization problems that grow beyond what classical algorithms can solve efficiently.
-
----
-
-[![AWS](https://img.shields.io/badge/AWS-Braket%20%7C%20Bedrock%20%7C%20Lambda%20%7C%20DynamoDB-232F3E?logo=amazonaws)](https://aws.amazon.com)
-[![Terraform](https://img.shields.io/badge/Terraform-10%20Modules%20%7C%2038%20Resources-7B42BC?logo=terraform)](https://www.terraform.io)
+[![CI](https://github.com/Xav519/aws-quantum-finance-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/Xav519/aws-quantum-finance-AI/actions/workflows/ci.yml)
+[![AWS](https://img.shields.io/badge/AWS-Braket%20%7C%20Bedrock%20%7C%20Lambda%20%7C%20DynamoDB%20%7C%20CloudFront-232F3E?logo=amazonaws)](https://aws.amazon.com)
+[![Terraform](https://img.shields.io/badge/Terraform-11%20Modules-7B42BC?logo=terraform)](https://www.terraform.io)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://python.org)
-[![Quantum](https://img.shields.io/badge/Quantum-QAOA%20%7C%2025%20Qubits%20%7C%201%2C000%20Shots-7C3AED)](https://aws.amazon.com/braket)
-[![AI](https://img.shields.io/badge/AI-Claude%204.5%20Haiku%20%7C%20Amazon%20Bedrock-FF9900)](https://aws.amazon.com/bedrock)
+[![Quantum](https://img.shields.io/badge/Quantum-QAOA%20%7C%2025%20Qubits-7C3AED)](https://aws.amazon.com/braket)
+[![AI](https://img.shields.io/badge/AI-Claude%20on%20Amazon%20Bedrock-FF9900)](https://aws.amazon.com/bedrock)
+
+> When a bank is hit by several cyberattacks at once, this system tells the security manager **which analyst should handle which attack** to lose the least money. It proves the answer is the best possible one and explains it in plain English for executives. It also runs the same problem on a **quantum computing service** and reports, transparently, how well the quantum algorithm did.
+
+**Jump to:** [In 30 seconds](#in-30-seconds) · [What this project demonstrates](#what-this-project-demonstrates) · [Demo](#live-demo) · [How it works](#how-it-works) · [Technical deep dive](#technical-deep-dive) · [Run it yourself](#run-it-yourself) · [Limitations](#honest-limitations-and-roadmap)
 
 ---
 
-## Table of Contents
+## In 30 seconds
 
-- [The Problem](#the-problem)
-- [Why This Matters Financially](#why-this-matters-financially)
-- [Live Demo](#live-demo)
-- [Architecture](#architecture)
-- [The Two Paths: Classical vs Quantum](#the-two-paths-classical-vs-quantum)
-- [The QAOA Quantum Circuit](#the-qaoa-quantum-circuit)
-- [Hybrid Verification Strategy](#hybrid-verification-strategy)
+**The problem.** A bank faces five simultaneous incidents (ransomware, data theft, phishing, and so on) and has five analysts. Each analyst is faster on some threats than others, and every hour an attack stays open costs money. Picking assignments on gut feeling leaves money on the table.
+
+**The solution.** The manager enters what each analyst would cost on each threat. The system:
+
+1. finds the assignment with the **lowest total cost** and proves no better one exists,
+2. shows how much that saves compared with an "intuitive" assignment,
+3. writes a three-sentence summary a board member can read.
+
+**A real example** (each cell is the breach impact in dollars if that analyst handles that threat):
+
+```
+           Ransomware  Data Theft  Phishing  SQL Injection   DDoS
+Sarah       $72,000     $95,000     $98,000     $75,000     $37,000    → SQL Injection
+Marc       $112,000     $31,000     $67,000     $99,000     $49,000    → Data Theft
+David       $56,000     $65,000    $111,000    $106,000     $34,000    → Ransomware
+Lisa        $61,000    $120,000     $28,000     $77,000    $115,000    → Phishing
+Chen       $107,000    $101,000     $10,000     $81,000     $19,000    → DDoS
+
+Intuitive assignment (each analyst in turn picks their cheapest open threat):   $233,000
+Optimal assignment found by the system:                                         $209,000
+Saved:                                                                           $24,000
+```
+
+The result is counter-intuitive: Sarah's cheapest threat is DDoS ($37k), but the team does better with Sarah on SQL Injection and Chen on DDoS.
+
+**Where quantum fits.** For five analysts, a normal computer solves this instantly. The project also sends the problem to **Amazon Braket** (AWS's quantum computing service) as a 25-qubit quantum program, then checks the quantum answer against the proven best one. That gives an honest measurement of a quantum algorithm on a real business problem, and a ready pipeline for harder problems where quantum methods may eventually help. **It does not claim quantum is faster today.**
+
+---
+
+## What this project demonstrates
+
+| Skill | Evidence in this repository |
+|---|---|
+| **Cloud architecture (AWS)** | Serverless system across 9 AWS services: API Gateway, Lambda, DynamoDB, EventBridge, S3, CloudFront, Braket, Bedrock, CloudWatch |
+| **Security engineering** | Least-privilege IAM role per function, strict input validation, rate limiting and a daily cost cap, HTTPS-only private website with a Content-Security-Policy, prompt-injection-aware AI prompts ([details](#security-and-cost-controls)) |
+| **Infrastructure as Code** | Entire stack in Terraform (11 modules), deployable and destroyable with one command, including safe state migrations |
+| **Quantum computing** | Problem translated into a QUBO/Ising model, QAOA circuit implemented from scratch, verified with a purpose-built simulator before spending on cloud quantum time |
+| **Applied AI** | Claude on Amazon Bedrock writes executive summaries limited to the computed figures, with a fallback when the AI service is unavailable |
+| **Reliability engineering** | Asynchronous workflow with idempotency (no duplicate billed jobs), safe retries, clear failure states, alarms |
+| **Software quality** | 47 automated tests, CI on every push, an offline benchmark that reproduces the published numbers |
+| **Communication** | Results explained for executives (AI summary), recruiters and engineers (this README) |
+
+---
+
+## Live demo
+
+The website is served by CloudFront (the `demo_url` output after deployment). To deploy your own copy and reproduce the results below, follow **[SETUP.md](SETUP.md)**.
+
+**1. Pick a team size and enter or generate costs**
+
+<p align="center"><img src="./assets/WebsiteLandingPage.png" alt="Website landing page" width="80%"></p>
+
+**2. Small teams (up to 4×4): exact answer in about 2 seconds**
+
+<p align="center"><img src="./assets/ExempleClassical3Initial.png" alt="Classical example input" width="80%"></p>
+<p align="center"><img src="./assets/ExempleClassical3After.png" alt="Classical example result" width="85%"></p>
+
+**3. 5×5 teams: a 25-qubit quantum job runs on Amazon Braket (1-2 minutes)**
+
+<p align="center"><img src="./assets/ExempleQuantumInitial.png" alt="Quantum example input" width="80%"></p>
+<p align="center"><img src="./assets/QuantumLoading.png" alt="Quantum job running" width="80%"></p>
+<p align="center"><img src="./assets/ExempleQuantumAfter.png" alt="Quantum example result" width="85%"></p>
+
+---
+
+## How it works
+
+### The simple version
+
+```
+ Manager's browser
+       │  "Here are my analysts, threats and costs"
+       ▼
+ API (rate-limited, validated)
+       │
+       ├── 2 to 4 analysts ──► check every possible assignment ──► best answer + AI summary   (≈2 s)
+       │
+       └── 5 analysts ───────► quantum program on Amazon Braket ─┐
+                               (runs in the background)          │
+                                                                 ▼
+                               decode quantum results, verify against the proven best answer,
+                               AI summary, store result ──► browser picks it up   (≈1-2 min)
+```
+
+### The architecture
+
+<p align="center"><img src="./assets/ArchitectureDiagram.drawio.png" alt="Project Architecture" width="85%"></p>
+
+### Glossary for non-specialists
+
+| Term | Meaning here |
+|---|---|
+| **Qubit** | The basic unit of a quantum computer. This problem uses 25 qubits, one per analyst-threat pair |
+| **QAOA** | *Quantum Approximate Optimization Algorithm*, a well-known quantum method for finding low-cost solutions |
+| **Amazon Braket** | AWS's quantum computing service. This project uses its SV1 simulator, which reproduces an ideal quantum computer exactly |
+| **Amazon Bedrock / Claude** | AWS's service for AI models; Claude writes the executive summary |
+| **Serverless / Lambda** | Code that runs on demand without managing servers; costs nothing when idle |
+| **Terraform** | A tool that creates the whole cloud environment from code, reproducibly |
+
+---
+
+## Technical deep dive
+
+- [Request flow](#request-flow)
+- [Classical and quantum paths](#classical-and-quantum-paths)
+- [The QAOA formulation](#the-qaoa-formulation)
+- [QAOA performance](#qaoa-performance)
+- [Hybrid verification](#hybrid-verification)
+- [Security and cost controls](#security-and-cost-controls)
 - [Infrastructure as Code](#infrastructure-as-code)
-- [Deployment Guide](#deployment-guide)
-- [API Reference](#api-reference)
-- [Real-World Use Cases](#real-world-use-cases)
-- [Future Roadmap](#future-roadmap)
-- [Engineering Challenges Solved](#engineering-challenges-solved)
-- [Technical Stack](#technical-stack)
-- [About](#about)
+- [Testing](#testing)
+- [API reference](#api-reference)
 
----
+### Request flow
 
-## The Problem
+```mermaid
+sequenceDiagram
+    autonumber
+    participant B as Browser (CloudFront)
+    participant API as API Gateway (HTTP API)
+    participant O as Orchestrator λ
+    participant D as DynamoDB
+    participant Q as Braket λ
+    participant BR as Amazon Braket SV1
+    participant EB as EventBridge
+    participant AI as Bedrock (Claude)
 
-When a bank faces **multiple simultaneous cyber incidents**, managers must rapidly assign analysts under intense pressure. These decisions are often based on judgment rather than a structured approach, leading to inefficiencies.
-
-Because each analyst has specialized expertise and each threat carries a different financial impact, misallocating resources can significantly increase losses and prolong exposure.
-
-```
-The Assignment Problem:
-
-           Ransomware  Data Exfil  Phishing  SQL Inject  DDoS
-Sarah       $72,000     $95,000     $98,000     $75,000    $37,000   ← Sarah on SQL Injection
-Marc       $112,000     $31,000     $67,000     $99,000    $49,000   ← Marc on Data Exfiltration
-David       $56,000     $65,000    $111,000    $106,000    $34,000   ← David on Ransomware
-Lisa        $61,000    $120,000     $28,000     $77,000   $115,000   ← Lisa on Phishing
-Chen       $107,000    $101,000     $10,000     $81,000    $19,000   ← Chen on DDos
-
-Greedy (intuition-based) assignment:  $233,000 total exposure
-Optimal assignment:                   $209,000 total exposure
-                                       ────────────────────────
-Savings from optimization:            $24,000
-```
-
-This system finds that optimal assignment, every time, with mathematical guarantees.
-
----
-
-## Why This Matters Financially
-
-### The Breach Impact Cost Formula
-
-```
-Breach Impact Cost = Hourly Financial Loss × Hours to Mitigate
+    B->>API: POST /optimize (N=5)
+    API->>O: invoke
+    O->>D: reserve daily quota, write job (PENDING)
+    O-)Q: async invoke {action: submit}
+    O-->>B: 202 {job_id}
+    Q->>BR: CreateQuantumTask (clientToken=job_id, tag job_id)
+    Q->>D: store task ARN
+    loop every 4 s
+        B->>API: GET /jobs/{job_id}
+        API-->>B: 202 PENDING
+    end
+    BR-)EB: Task State Change (COMPLETED)
+    EB-)Q: invoke
+    Q->>BR: GetQuantumTask (read job_id tag)
+    Q->>Q: decode shots, QAOA metrics, exact optimum
+    Q->>AI: board summary (template fallback if unavailable)
+    Q->>D: job COMPLETE (conditional on PENDING)
+    B->>API: GET /jobs/{job_id}
+    API-->>B: 200 result + QAOA metrics
 ```
 
-Each cell in the N×N cost matrix represents the total dollar cost if a specific analyst handles a specific threat. A network specialist resolves a ransomware incident in 2 hours; an endpoint analyst takes 3 hours -- the difference is **$20,000 in additional breach liability**.
+### Classical and quantum paths
 
-### The Scale Problem
+| | Classical (N ≤ 4) | Quantum (N = 5) |
+|---|---|---|
+| Method | Enumerate all N! permutations (≤ 24) | QAOA, 25 qubits, p = 16 layers, 5,625 gates, 1,000 shots on Braket SV1 |
+| Response | Synchronous `200` | `202` + `job_id`, then poll `GET /jobs/{job_id}` |
+| Result | Proven optimum + greedy baseline + summary | Proven optimum + greedy baseline + **QAOA quality metrics** + summary |
 
-The number of valid analyst-to-threat assignments grows as **N! (N factorial)**, which makes brute-force search infeasible beyond small sizes.
+The plain assignment problem is easy classically: the Hungarian algorithm solves N = 50 in milliseconds. N = 5 is chosen because every quantum result can be verified exactly, which is how you build trust in a quantum pipeline.
 
-| Team Size | Permutations      | Classical Time | Quantum Relevance |
-|-----------|-------------------|----------------|-------------------|
-| N = 4     | 24                | < 1ms          | Classical, instant       |
-| N = 5     | 120               | < 1ms          | Quantum architecture demo - verifiable against ground truth |
-| N = 10    | 3,628,800         | ~milliseconds      | Still fast classically with efficient solvers |
-| N = 20    | 2.4 quintillion   | Infeasible (brute-force)          | Still efficiently solvable via Hungarian algorithm (O(N³))  |
-| N = 50+   | 3 × 10⁶⁴         | Intractable (brute-force)     | Complex variants become challenging at scale  |
+### The QAOA formulation
 
-The assignment problem is efficiently solvable classically at realistic scales using algorithms such as the Hungarian method. 
+All quantum logic is in [`modules/lambda_braket/src/qaoa.py`](modules/lambda_braket/src/qaoa.py) (pure Python, no dependencies).
 
-This project uses N=5 specifically because it is small enough to **verify the quantum result against the mathematical ground truth**. This is critical for building reliable quantum systems.
-
-The goal is not to outperform classical methods on this problem today.
-
-Instead, this system demonstrates a working hybrid pipeline (classical + quantum + cloud + AI) that can be applied to much harder optimization problems such as large-scale scheduling, portfolio optimization, or supply chain coordination where classical methods either become computationally expensive or rely on approximations.
-
-In short:
-this project proves the infrastructure works today, for the optimization problems that will matter tomorrow.
-
-### Business Impact
-
-- Based on the [IBM Cost of a Data Breach Report](https://www.ibm.com/reports/data-breach), the average breach costs **$4.4M**. Faster and optimized analyst response directly reduces exposure duration and total breach cost
-- Regulatory compliance: every assignment decision is **timestamped, auditable, and financially justified**. Useful for OSFI, FFIEC, and Basel III incident response documentation
-- CISO reporting: Bedrock generates board-level narratives automatically, eliminating 2-3 hours of post-incident communication work per event
-
----
-
-## Live Demo
-
-**Frontend:** `http://quantum-finance-dev-demo-frontend.s3-website-us-east-1.amazonaws.com`
-
-**API Base:** `https://{api-id}.execute-api.us-east-1.amazonaws.com/`
-
-### Website landing page
-
----
-
-<p align="center">
-  <img src="./assets/WebsiteLandingPage.png"
-       alt="WebsiteLandingPage"
-       width="80%"
-       style="border: 2px solid white; border-radius: 8px;">
-</p>
-
-### Classical Example (N=3, instant result)
-
----
-
-<p align="center">
-  <img src="./assets/ExempleClassical3Initial.png" alt="ClassicalExN3" width="80%" style="border: 2px solid white; border-radius: 8px;">
-</p>
-
-**Response (200 OK, ~3 seconds):**
-
----
-
-<p align="center">
-  <img src="./assets/ExempleClassical3After.png" alt="ClassicalExN3-2" width="85%" style="border: 2px solid white; border-radius: 8px;">
-</p>
-
-### Quantum Example (N=5, async QAOA on Braket SV1)
-
----
-
-<p align="center">
-  <img src="./assets/ExempleQuantumInitial.png" alt="QuantumInitial" width="80%" style="border: 2px solid white; border-radius: 8px;">
-</p>
-
-**Submit Response (202 Accepted):**
-
----
-
-<p align="center">
-  <img src="./assets/QuantumLoading.png" alt="QuantumLoading" width="80%" style="border: 2px solid white; border-radius: 8px;">
-</p>
-
-**Poll Response (200 OK, ~90 seconds later):**
-
----
-
-<p align="center">
-  <img src="./assets/ExempleQuantumAfter.png" alt="QuantumFinal" width="85%" style="border: 2px solid white; border-radius: 8px;">
-</p>
-
----
-
-## 🗺️ Architecture Visualization
-
-<p align="center">
-  <img src="./assets/ArchitectureDiagram.drawio.png" alt="Project Architecture" width="85%" >
-</p>
-
-*Made with draw.io*
-
----
-
-## The Two Paths: Classical vs Quantum
-
-### Classical Path (N ≤ 4) - Guaranteed Optimum
-
-```python
-import itertools
-
-def brute_force(cost_matrix):
-    n = len(cost_matrix)
-    best_cost, best_perm = float("inf"), None
-    for perm in itertools.permutations(range(n)):
-        cost = sum(cost_matrix[i][perm[i]] for i in range(n))
-        if cost < best_cost:
-            best_cost, best_perm = cost, list(perm)
-    return best_perm, best_cost
-```
-
-- Evaluates every permutation - mathematically **guarantees** the global optimum
-- N=4 evaluates 24 combinations in microseconds
-- Synchronous: result returned in the HTTP response
-- Bedrock generates the board narrative in the same call
-
-### Quantum Path (N = 5) - QAOA on Amazon Braket SV1
-
-- Submits a 25-qubit QAOA circuit to Braket SV1
-- Returns `202 PENDING` immediately with a `job_id`
-- EventBridge fires when Braket completes → Lambda decodes results
-- Classical verification guarantees the globally optimal assignment regardless of QAOA approximation quality
-- Result available via `GET /jobs/{job_id}` polling
-
----
-
-## The QAOA Quantum Circuit
-
-The circuit is built in **Braket JAQCD (JSON IR)** format - the native wire format for Braket SV1:
+**1. Problem → QUBO.** One binary variable `x_ij` per (analyst *i*, threat *j*) gives N² qubits. The constraints become quadratic penalties:
 
 ```
-Qubits: 25 (N² = 5² encoding - one qubit per analyst-alert pair)
-Layers: p = 3 QAOA layers
-Shots:  1,000 measurement repetitions
-
-Layer structure per QAOA round:
-  ┌─────────────────┐
-  │ Hadamard (H)    │ → Superposition: explore all 2²⁵ states simultaneously
-  │ on all 25 qubits│
-  └────────┬────────┘
-           │
-  ┌────────▼────────┐
-  │ Cost Layer (Rz) │ → Phase shift proportional to breach impact cost
-  │                 │   High-cost assignments accumulate negative phase
-  │                 │   Low-cost assignments become more probable
-  └────────┬────────┘
-           │
-  ┌────────▼────────┐
-  │ Row Constraints │ → CNOT-Rz-CNOT triplets penalize one analyst
-  │ (CNOT pairs)    │   covering two alerts simultaneously
-  └────────┬────────┘
-           │
-  ┌────────▼────────┐
-  │ Col Constraints │ → CNOT-Rz-CNOT triplets penalize two analysts
-  │ (CNOT pairs)    │   assigned to the same alert
-  └────────┬────────┘
-           │
-  ┌────────▼────────┐
-  │ Mixer Layer(Rx) │ → Allow quantum state to escape local minima
-  │                 │   and explore broader solution space
-  └────────┬────────┘
-           │ (repeat p=3 times)
-           ▼
-  ┌─────────────────┐
-  │ Measurement     │ → Collapse 25-qubit state to classical bitstring
-  │ 1,000 shots     │   Most probable bitstring = best assignment found
-  └─────────────────┘
+E(x) = Σ c'_ij x_ij                 cost, normalised to [0, 1]
+     + A Σ_i (Σ_j x_ij − 1)²        each analyst takes exactly one threat
+     + A Σ_j (Σ_i x_ij − 1)²        each threat gets exactly one analyst
 ```
 
-**JAQCD gate format (verified against amazon-braket-schemas-python SDK):**
+Dropping one assignment from a valid permutation saves at most `c'_max = 1` but breaks one row and one column (+2A), so any `A > 0.5` favours valid assignments. The code uses `A = 0.75`. A test checks, over all 2⁹ states, that the QUBO's ground state is the optimal assignment.
 
-```json
-{"type": "h",    "target": 0}
-{"type": "rz",   "target": 0, "angle": 0.4}
-{"type": "rx",   "target": 0, "angle": 0.6}
-{"type": "cnot", "control": 0, "target": 1}
-```
+**2. QUBO → Ising.** Substituting `x = (1 − z)/2` gives `H_C = Σ h_k Z_k + Σ J_kl Z_k Z_l`, rescaled so the largest coefficient is 1. The angle schedule is then independent of problem size and dollar amounts.
 
----
-
-## Hybrid Verification Strategy
-
-QAOA is an **approximation algorithm** - it finds good solutions, not always the best. This system takes a production-honest approach:
+**3. Circuit (Braket JAQCD IR).**
 
 ```
-QAOA explores → Classical verifies → Best result returned
+|+⟩^⊗25  ──►  for i = 1..p:  e^{−iγᵢ H_C} · e^{−iβᵢ H_M}  ──►  measure (1,000 shots)
 
-1. Braket SV1 runs 1,000 shots of the QAOA circuit
-2. Most probable bitstring is decoded into an assignment
-3. Classical brute-force checks all N! permutations (trivial for N≤5)
-4. The verified global optimum is returned to the user
-5. The Bedrock narrative includes the QAOA approximation gap %
-   (e.g., "QAOA approximation: $246,000 - 33% gap from $184,000 optimum")
+  e^{−iγ h Z_k}         →  Rz(2γh)                          each qubit
+  e^{−iγ J Z_k Z_l}     →  CNOT(k,l) · Rz_l(2γJ) · CNOT(k,l) each same-row / same-column pair (100 per layer)
+  e^{−iβ H_M}, H_M=−ΣX  →  Rx(−2β)                           each qubit
 ```
 
-**Why this design matters:** At N=5 with 120 permutations, verification is instant and free. This allows the system to be fully honest about QAOA's approximation quality. As hardware improves and circuit depth increases, that gap shrinks. The infrastructure is identical regardless.
+**4. Linear-ramp schedule, no variational loop.** Textbook QAOA tunes (γ, β) in an optimization loop, but on Braket every iteration is a separately billed task. This project uses a fixed, annealing-inspired linear ramp (Montañez-Barrera & Michielsen, *Towards a universal QAOA protocol*, 2024): γ ramps up as β ramps down. Δγ = 3.2, Δβ = 0.6, A and p were tuned offline with the local simulator, then frozen.
 
----
+**5. Decoding.** A bitstring is valid if every row and column has exactly one `1`. The handler reports the best valid sample, the share of valid shots and the share of optimal shots. Invalid samples are never "repaired" into answers.
 
-## Infrastructure as Code
+### QAOA performance
 
-### Key Design Decisions
+Noiseless statevector simulation of the exact circuit the Lambda submits (`python tests/benchmark_qaoa.py`), random cost matrices ($10k-$120k), 1,000 sampled shots:
+
+| N | Qubits | Instances | P(valid) per shot | P(optimal) per shot | Random guess P(optimal) | Best sample = optimum |
+|---|--------|-----------|-------------------|---------------------|-------------------------|-----------------------|
+| 3 | 9      | 20        | 0.665             | 0.323               | 2.0 × 10⁻³              | 20 / 20               |
+| 4 | 16     | 20        | 0.710             | 0.139               | 1.5 × 10⁻⁵              | 20 / 20               |
+| 5 | 25     | 5         | 0.433             | 0.049               | 3.0 × 10⁻⁸              | 5 / 5                 |
+
+At N = 5 the circuit makes the optimal assignment more than a million times more likely than random sampling of 25 qubits. About 49 of 1,000 shots are optimal, and the optimum was found in every run. SV1 is noiseless, so live results match these statistics up to sampling variation; [SETUP.md](SETUP.md#5-reproduce-the-results) lists the expected live values for the example above.
+
+> **History:** the first version used a fixed 1-3 layer circuit with an incomplete constraint encoding and always returned the brute-force answer. Its QAOA gaps were 33-112%. Reformulating as a proper QUBO with a tuned schedule produced the table above.
+
+### Hybrid verification
+
+```
+QAOA samples → best valid sample measured → exact optimum computed classically → optimum returned
+```
+
+At N = 5, checking all 120 assignments is instant, so the system can be fully transparent: the **verified optimum** is the recommendation, and the QAOA metrics are returned alongside it and shown in the UI. For problems too large to verify exhaustively, the same metrics (valid-shot rate, best sampled cost) are what you would monitor.
+
+### Security and cost controls
+
+A public demo that triggers paid services is a denial-of-wallet target. Controls, from the edge in:
+
+| Layer | Control |
+|---|---|
+| **Frontend** | Private S3 bucket behind CloudFront with **Origin Access Control**; HTTPS only; HSTS, `X-Frame-Options: DENY`, `nosniff`, strict **CSP** (`script-src 'self'`, no inline script); all API data HTML-escaped |
+| **API Gateway** | Throttling (10 rps / 20 burst; `POST /optimize` 1 rps / 5 burst); **CORS restricted** to the CloudFront origin; structured access logs |
+| **Orchestrator** | Strict validation (size, types, finite non-negative costs, label allow-list, 16 KB body); **daily quantum-job quota** enforced atomically in DynamoDB (`429` when exhausted) |
+| **IAM** | **One role per Lambda**, each statement scoped to a concrete ARN (table, bucket, the two invokable functions, its own log group, the configured Bedrock model). `get_job` can only `GetItem` |
+| **Invocation** | API Gateway can invoke only its routes; EventBridge only from its rule; Braket events from other projects are ignored |
+| **Data** | Encryption at rest; S3 denies non-TLS requests, ACLs disabled; Braket results expire after 30 days, job records after 7 |
+| **AI** | User-supplied names are validated, wrapped in `<data>` tags and declared non-instructions in the system prompt; the model is told to use only the provided figures and never claim a quantum advantage; output rendered as text |
+| **Monitoring** | Error alarms on all four Lambdas and on API 5xx, delivered by SNS email |
+
+### Infrastructure as Code
+
+```
+rootTerraformCode/          root module, variables, outputs, state moves
+modules/
+├── storage/                DynamoDB jobs table, Braket results bucket
+├── iam/                    4 least-privilege execution roles
+├── shared_layer/           Lambda layer: qf_common (solver, Bedrock, job records, HTTP)
+├── lambda_orchestrator/    POST /optimize: validation, quota, routing
+├── lambda_classical/       exact solver + greedy baseline + summary
+├── lambda_braket/          QAOA submit + completion (qaoa.py)
+├── lambda_get_job/         GET /jobs/{job_id}
+├── messaging/              EventBridge: Braket task state change → Lambda
+├── api_gateway/            HTTP API, throttling, CORS, access logs
+├── demo_frontend/          private S3 + CloudFront + security headers; site/ is static
+└── observability/          SNS, alarms, dashboard
+```
+
+<details>
+<summary><b>Key design decisions</b></summary>
 
 | Decision | Rationale |
 |---|---|
-| DynamoDB GSI on `braket_task_arn` | EventBridge completion handler needs to find the job by task ARN - O(1) GSI query vs O(N) table scan |
-| `InvocationType="Event"` for Braket Lambda | Braket tasks are async - fire-and-forget avoids orchestrator timeout (90s < Braket Lambda's 300s) |
-| `amazon-braket-*` bucket naming | AWS Braket enforces this naming requirement at `CreateQuantumTask` time |
-| JAQCD over OpenQASM | Braket SV1 doesn't support `include` statements or all OpenQASM 2.0/3.0 gate names |
-| Inference profile ARN | Claude 4.x models require `us.anthropic.*` cross-region inference profile format |
-| Hybrid QAOA + brute-force | Guarantees optimal result regardless of QAOA approximation quality |
-| TTL on DynamoDB items | Auto-cleanup at 7 days - no maintenance required for demo jobs |
+| Orchestrator writes `PENDING` **before** dispatching | An accepted job can never 404, even if a later step fails |
+| `clientToken = job_id` on `CreateQuantumTask` | Retries cannot create duplicate billed quantum tasks |
+| Job ID carried as a **Braket task tag** | Completion handler resolves its job from the task: no race, no secondary index, foreign tasks ignored |
+| State transitions conditional on `status = PENDING` | Duplicate events and retries are harmless |
+| Errors mark the job `FAILED`, then re-raise | User sees a clear failure *and* the alarm fires |
+| Bedrock summary has a deterministic fallback | An AI outage never loses a result; `narrative_source` says which was used |
+| Linear-ramp QAOA instead of a variational loop | Each optimizer step would be a separate billed task |
+| JAQCD rather than OpenQASM | SV1 rejected the OpenQASM forms used initially (see challenges); JAQCD maps 1:1 to the circuit |
+| Shared code as a **Lambda layer** | Defined once instead of copy-pasted per function |
+| arm64, pure Python | Cheaper, faster cold starts, nothing to compile |
+| Log groups created before each function; `moved` blocks | Retention from the first invocation; existing deployments migrate without recreation |
 
----
+</details>
 
-## Deployment Guide
-
-### Prerequisites
-
-- AWS CLI configured with appropriate permissions
-- Terraform >= 1.7
-- Amazon Braket service role created (one-time per account):
-  ```
-  https://console.aws.amazon.com/braket/home#/permissions?tab=executionRoles
-  ```
-- Bedrock model access for Claude 4.5 Haiku (`us.anthropic.claude-4-5-haiku-20241022-v1:0`)
-
-### Deploy
+### Testing
 
 ```bash
-cd rootTerraformCode
-
-# Initialize providers
-terraform init
-
-# Review the plan (38 resources)
-terraform plan
-
-# Deploy everything
-terraform apply
+pip install -r requirements-dev.txt
+pytest                                               # 47 tests, ~1 s
+python tests/benchmark_qaoa.py                       # performance table, N = 3 and 4
+python tests/benchmark_qaoa.py --n 5 --instances 5   # 25 qubits, ~3 min per instance
 ```
 
-**Full deployment time: < 5 minutes**
+| Suite | What it proves |
+|---|---|
+| `test_qaoa.py` | QUBO ground state = optimal assignment; Ising ≡ QUBO up to a constant; **the JAQCD gate list, simulated gate by gate, equals the reference QAOA evolution**; the optimum is the most likely outcome; decoding and metrics |
+| `test_handlers.py` | End-to-end quantum flow with in-memory AWS fakes: 202 → idempotent submit → completion (duplicate event ignored) → 200; failed and foreign tasks; daily quota; ID validation |
+| `test_validation.py` | Malformed, oversized, non-finite, duplicate and injection-style inputs are rejected |
+| `test_common.py` | The README example values, Bedrock fallback paths, DynamoDB/JSON serialization |
 
-### Outputs
+GitHub Actions runs the tests plus `terraform fmt -check` and `terraform validate` on every push. `tests/statevector.py` is a small numpy statevector simulator written for this project.
 
-```
-api_url              = "https://{id}.execute-api.us-east-1.amazonaws.com/"
-demo_url             = "http://{bucket}.s3-website-us-east-1.amazonaws.com"
-dynamodb_table       = "quantum-finance-dev-jobs"
-results_bucket       = "amazon-braket-quantum-finance-dev"
-lambda_orchestrator  = "quantum-finance-dev-orchestrator"
-lambda_classical     = "quantum-finance-dev-classical"
-lambda_braket        = "quantum-finance-dev-braket"
-lambda_get_job       = "quantum-finance-dev-get-job"
-eventbridge_rule     = "quantum-finance-dev-braket-task-complete"
-cloudwatch_dashboard = "quantum-finance-dev-dashboard"
-```
+### API reference
 
-### Teardown
+<details>
+<summary><b><code>POST /optimize</code></b></summary>
 
-```bash
-terraform destroy
-```
-
----
-
-## API Reference
-
-### `POST /optimize`
-
-Submit an optimization job. Returns synchronously for N ≤ 4, asynchronously for N = 5.
-
-**Request body:**
 ```json
 {
-  "analysts":    ["Alice", "Bob", "Carol", "Dave", "Eve"],
-  "alerts":      ["SQL Injection", "DDoS", "Ransomware", "Phishing", "Zero-Day"],
+  "analysts":    ["Sarah", "Marc", "David", "Lisa", "Chen"],
+  "alerts":      ["Ransomware", "Data Exfiltration", "Phishing", "SQL Injection", "DDoS"],
   "cost_matrix": [
-    [500, 800, 1200, 900,  600],
-    [900, 400,  700, 500,  800],
-    [1100,600,  300, 700,  900],
-    [700, 500,  800, 400, 1000],
-    [600, 900,  500, 800,  350]
+    [72000,  95000,  98000,  75000,  37000],
+    [112000, 31000,  67000,  99000,  49000],
+    [56000,  65000, 111000, 106000,  34000],
+    [61000, 120000,  28000,  77000, 115000],
+    [107000, 101000, 10000,  81000,  19000]
   ]
 }
 ```
 
-**Constraints:**
-- `analysts`, `alerts`, `cost_matrix` must all be N×N (same size)
-- N must be between 2 and 5
-- N ≤ 4 → classical brute-force, synchronous 200 response
-- N = 5 → quantum QAOA, asynchronous 202 response
+Rules: 2 ≤ N ≤ 5; all three fields size N (×N); names unique, 1-60 characters (letters, digits, spaces, `. , ' ( ) & / + -`); costs between 0 and 1,000,000,000.
 
-**Response (N ≤ 4, 200 OK):**
-```json
-{
-  "job_id":     "uuid",
-  "status":     "COMPLETE",
-  "method":     "CLASSICAL",
-  "assignment": [{"analyst": "...", "alert": "...", "cost": 500}],
-  "total_cost": 1200,
-  "narrative":  "Board-level executive summary from Claude 4.5 Haiku..."
-}
-```
-
-**Response (N = 5, 202 Accepted):**
-```json
-{
-  "job_id":   "uuid",
-  "status":   "PENDING",
-  "method":   "QUANTUM",
-  "qubits":   25,
-  "shots":    1000,
-  "message":  "QAOA circuit submitted to Amazon Braket SV1."
-}
-```
-
----
-
-### `GET /jobs/{job_id}`
-
-Poll for quantum job completion.
-
-**Response (still running, 202):**
-```json
-{
-  "job_id":  "uuid",
-  "status":  "PENDING",
-  "message": "Quantum job is still running. Please retry in a few seconds."
-}
-```
-
-**Response (complete, 200):**
-```json
-{
-  "job_id":     "uuid",
-  "status":     "COMPLETE",
-  "method":     "QUANTUM",
-  "assignment": [{"analyst": "...", "alert": "...", "cost": 16000}],
-  "total_cost": "246000",
-  "narrative":  "Board-level executive summary..."
-}
-```
-
----
-
-## Real-World Use Cases
-
-### Today (Classical Path - Production Ready)
-
-| Use Case | Value |
+| Status | Meaning |
 |---|---|
-| Concurrent incident triage | Optimal analyst-to-threat assignment in < 3 seconds, guaranteed global optimum |
-| CISO board reporting | Auto-generated executive narrative - no manual translation from technical to business language |
-| SOC capacity planning | Quantify the ROI of analyst training: if training reduces a cell from $80k to $30k, the training pays for itself in one incident |
-| Regulatory documentation | Timestamped, auditable, financially-justified assignment decisions for OSFI / FFIEC compliance |
-| Shift handover briefings | Instant re-optimization when threat priorities change between analyst shifts |
+| `200` | N ≤ 4: completed classical result |
+| `202` | N = 5: quantum job accepted; poll `GET /jobs/{job_id}` |
+| `400` | Validation error: `{"error": "..."}` |
+| `429` | Rate limit or daily quantum quota reached |
+| `502` | A downstream solver could not be reached |
 
-### Near-Term (1-3 Years, Improved Quantum Hardware)
+Classical `200` (the top-left 3×3 of the example):
+```json
+{
+  "job_id": "uuid", "status": "COMPLETE", "method": "CLASSICAL",
+  "assignment": [
+    {"analyst": "Sarah", "alert": "Phishing", "cost": 98000},
+    {"analyst": "Marc", "alert": "Data Exfiltration", "cost": 31000},
+    {"analyst": "David", "alert": "Ransomware", "cost": 56000}
+  ],
+  "total_cost": 185000, "greedy_cost": 214000, "savings": 29000,
+  "combinations_evaluated": 6,
+  "narrative": "Three-sentence board summary...", "narrative_source": "bedrock"
+}
+```
 
-- Larger SOC teams where multiple optimization approaches are being benchmarked side by side
-- Portfolio optimization - same mathematical structure as capital allocation across assets
-- Multi-cloud security orchestration - matching response playbooks to threat categories at scale
-- Supply chain matching - optimal assignment of suppliers, logistics routes, or cloud resources
+Quantum `202`:
+```json
+{ "job_id": "uuid", "status": "PENDING", "method": "QUANTUM", "qubits": 25, "shots": 1000,
+  "message": "QAOA circuit (25 qubits, 1,000 shots) queued for Amazon Braket SV1." }
+```
+</details>
 
-### Long-Term (Quantum Advantage Era)
+<details>
+<summary><b><code>GET /jobs/{job_id}</code></b></summary>
 
-- Harder combinatorial problems (drug discovery, logistics at massive scale, portfolio optimization) where QAOA's architecture is genuinely competitive with classical methods
-- Real quantum hardware: one Terraform variable change routes to IonQ Aria, Rigetti Ankaa, or IBM Heron
-- Combined with quantum ML for threat classification and risk scoring
-- Industry-first quantum-native incident response platforms
+| Status | Body |
+|---|---|
+| `202` | `{"status": "PENDING", "message": "..."}` |
+| `200` | `COMPLETE` result, or `{"status": "FAILED", "error": "..."}` |
+| `400` / `404` | Not a UUID / unknown or expired job |
 
-> ⚡ **The organizations building quantum-ready infrastructure today won't scramble when quantum computing matures. They'll flip a configuration switch.**
+A completed quantum job adds a `qaoa` object (values vary slightly from run to run because measurement is random):
+
+```json
+"qaoa": {
+  "qubits": 25, "layers": 16, "shots": 1000,
+  "feasible_fraction": 0.391, "optimal_fraction": 0.041,
+  "qaoa_assignment": [{"analyst": "Sarah", "alert": "SQL Injection", "cost": 75000}],
+  "qaoa_cost": 209000, "qaoa_gap_pct": 0.0, "qaoa_found_optimum": true,
+  "distinct_bitstrings": 494, "random_baseline_optimal_fraction": 0.0083
+}
+```
+</details>
 
 ---
 
-## Engineering Challenges Solved
+## Run it yourself
 
-> This section documents some of the real production issues hit and resolved while building the AWS infrastructure. These are not theoretical exercises - every error below was encountered during actual deployment and debugged independently.
+```bash
+git clone https://github.com/Xav519/aws-quantum-finance-AI.git
+cd aws-quantum-finance-AI/rootTerraformCode
+cp terraform.tfvars.example terraform.tfvars   # add your email
+terraform init && terraform apply
+```
 
-### Critical Issues
+That is the short version. **[SETUP.md](SETUP.md)** covers the one-time AWS account preparation (Braket, Bedrock model access), verification steps, the exact inputs and expected outputs to reproduce these results live, costs, troubleshooting and teardown.
 
-| # | Issue | Root Cause | Fix |
+---
+
+## Honest limitations and roadmap
+
+**Limitations**
+- **No quantum advantage.** Classical algorithms solve this problem faster at every size; the quantum path is a validated pipeline, not a speed-up.
+- **Simulator, not hardware.** SV1 is noiseless. With about 3,200 two-qubit gates, this circuit is far too deep for today's noisy quantum processors.
+- **Demo-grade access control.** The API is public, protected by throttling and a quota rather than authentication.
+
+**Roadmap**
+- **Real QPU execution:** device-specific parameters, a constraint-preserving XY-mixer formulation, shallower circuits and error mitigation (changing the device ARN alone is not enough).
+- **Variational tuning** with Amazon Braket Hybrid Jobs, compared against the fixed schedule.
+- **Larger classical N** with the Hungarian algorithm (`scipy.optimize.linear_sum_assignment`).
+- **Authentication** (Cognito) and AWS WAF for non-demo use.
+- **Constrained variants** (analysts on several incidents, skills, SLAs), which are NP-hard and where the QUBO approach actually matters.
+
+---
+
+## Engineering challenges solved
+
+<details>
+<summary><b>Braket and Bedrock integration (9 issues)</b></summary>
+
+| # | Issue | Root cause | Fix |
 |---|---|---|---|
-| 1 | `ValidationException: include statements not supported` | OpenQASM 3.0 `include "stdgates.inc"` rejected by Braket SV1 | Rewrote circuit builder from OpenQASM string generation to JAQCD JSON IR format |
-| 2 | `ValidationException: cx gate not supported` | OpenQASM 2.0 `cx` gate name rejected by Braket | Switched to JAQCD; all gates defined as `{"type": "cnot", "control": k1, "target": k2}` |
-| 3 | `ValidationException: Provided action is not valid` | JAQCD gate objects used `"gate"` field name - correct field is `"type"` | Verified schema against `amazon-braket-schemas-python` SDK; rebuilt all gate helpers |
-| 4 | `ValidationException: results field invalid` | Used `[{"type": "measurement", "targets": [...]}]` in results - measurement is implicit in JAQCD | Changed `results` to `[]`; JAQCD measurement is automatic when shots > 0 |
-| 5 | `ValidationException: paradigmParameters is missing` | `CreateQuantumTask` requires `deviceParameters` JSON with `GateModelSimulatorDeviceParameters` | Added `deviceParameters` with `paradigmParameters.qubitCount` and `disableQubitRewiring` |
-| 6 | `ValidationException: bucket must start with 'amazon-braket-'` | Braket enforces bucket naming at `CreateQuantumTask` time regardless of IAM | Renamed bucket from `{prefix}-braket-results` to `amazon-braket-{prefix}` in storage module |
-| 7 | `ResourceNotFoundException` on `InvokeModel` | Bedrock Haiku 4.5 requires use-case form submission for new accounts | Submitted use case form; switched to Claude 4.5 Haiku as production model |
-| 8 | `JSONDecodeError` reading Braket Lambda response | `InvocationType="Event"` returns empty payload - old code called `json.loads(resp["Payload"].read())` | Removed payload read from quantum path; `Event` invocations have no response body |
-| 9 | `ValidationException: qubitCount must be between 1 and 34` | N=6 requires 6²=36 qubits; SV1 max is 34 | Reduced max N from 6 to 5; updated orchestrator validation and frontend dropdown |
+| 1 | `ValidationException: include statements not supported` | OpenQASM 3.0 `include "stdgates.inc"` rejected by SV1 | Rewrote circuit generation in JAQCD JSON IR |
+| 2 | `ValidationException: cx gate not supported` | OpenQASM 2.0 `cx` rejected | JAQCD `{"type": "cnot", ...}` |
+| 3 | `Provided action is not valid` | JAQCD gates used `"gate"`; the field is `"type"` | Verified against `amazon-braket-schemas-python` |
+| 4 | `results field invalid` | Measurement is implicit in JAQCD | `results: []` |
+| 5 | `paradigmParameters is missing` | `CreateQuantumTask` needs `deviceParameters` | Added simulator device parameters with `qubitCount` |
+| 6 | `bucket must start with 'amazon-braket-'` | Braket naming rule | Bucket renamed |
+| 7 | `ResourceNotFoundException` on `InvokeModel` | Anthropic models need a use-case form on new accounts | Submitted form; `us.` inference profile |
+| 8 | `JSONDecodeError` after async invoke | `InvocationType="Event"` returns no payload | Removed the payload read |
+| 9 | `qubitCount must be between 1 and 34` | N = 6 needs 36 qubits | Max N = 5 |
 
-### Infrastructure Issues
+</details>
 
-| # | Issue | Fix |
-|---|---|---|
-| 10 | CloudWatch dashboard `400 InvalidParameterInput - region required` | All 3 dashboard widget `properties` blocks missing `region` field | Added `region = var.aws_region` to every widget; passed `aws_region` through module variables |
-| 11 | `messaging/outputs.tf` referenced `braket_job_complete` - resource is `braket_task_complete` | Fixed resource reference name to match actual `aws_cloudwatch_event_rule` declaration |
-| 12 | DynamoDB full-table scan on `braket_task_arn` - O(N) cost at scale | Added GSI on `braket_task_arn`; replaced `table.scan()` with `table.query(IndexName=...)` |
-| 13 | `templatefile()` crashed on JS `${n}` - treated as Terraform variable | Escaped all JS template literals from `${...}` to `$${...}` in `.tpl` file |
-| 14 | `AWSServiceRoleForAmazonBraket` did not exist | One-time console step: Braket → Permissions → Create service role |
-
-### Application Issues
+<details>
+<summary><b>Infrastructure (5 issues)</b></summary>
 
 | # | Issue | Fix |
 |---|---|---|
-| 15 | `get_job` returned `file: null` for all quantum results | Handler read `item.get("files", [])` but DynamoDB stores `alerts` | Replaced `files` → `alerts` key; updated pair dict from `"file"` to `"alert"` |
-| 16 | Frontend displayed `$NaN` for per-pair breach costs in quantum results | Quantum path stores assignment as index array - `cost` field not computed on retrieval | Updated `get_job` to load `cost_matrix` from DynamoDB and compute `cost_matrix[i][assignment_indices[i]]` |
-| 17 | Bedrock narrative showed `# Board Presentation:` as literal text in UI | Prompt did not prohibit markdown - Claude added headers by default | Added explicit `no markdown, no headers, no bullet points` instruction to Bedrock prompt |
-| 18 | QAOA returned $390k vs true optimum of $184k (112% gap) | p=1 layer insufficient for reliable convergence | Increased to p=3 layers; added classical brute-force verification in `handle_complete` - always returns global optimum |
-| 19 | Orchestrator timeout (90s) on quantum path | `InvocationType="RequestResponse"` waited up to 300s for Braket Lambda | Changed to `InvocationType="Event"`; orchestrator returns 202 immediately |
+| 10 | Dashboard `region required` | `region` on every widget |
+| 11 | Output referenced a non-existent EventBridge resource | Fixed reference |
+| 12 | Completion handler scanned the table to find its job | GSI first, then replaced by a Braket task tag (no index, no race) |
+| 13 | `templatefile()` broke on JavaScript `${...}` | Static site files plus a generated `config.js` |
+| 14 | `AWSServiceRoleForAmazonBraket` missing | One-time console step |
+
+</details>
+
+<details>
+<summary><b>Second iteration: hardening review (9 findings)</b></summary>
+
+| # | Finding | Fix |
+|---|---|---|
+| 15 | QAOA penalty missing linear terms; fixed angles | Full QUBO → Ising derivation, tuned schedule, tests + simulation |
+| 16 | Quantum result discarded; invalid samples repaired greedily | Best valid sample reported with valid/optimal shot rates |
+| 17 | AI summary claimed superposition "evaluated every configuration" | Prompts limited to supplied figures; no advantage claims |
+| 18 | Public API could trigger unlimited paid calls | Throttling, daily quota, CORS lock-down |
+| 19 | Jobs could stay `PENDING` forever | PENDING written first, failures mark `FAILED`, AI fallback |
+| 20 | Retries could duplicate quantum tasks | `clientToken` + conditional transitions |
+| 21 | Shared IAM role with wildcard resources | One scoped role per function |
+| 22 | `innerHTML` with API data; public HTTP bucket | Escaping, CSP, CloudFront + OAC |
+| 23 | No tests | 47 tests, CI, benchmark |
+
+</details>
 
 ---
 
-## Technical Stack
+## Technical stack
 
-### AWS Services
-
-| Service | Usage |
+| Area | Tools |
 |---|---|
-| **Amazon Braket** | QAOA circuit execution on SV1 simulator (25 qubits, 1,000 shots, JAQCD IR format) |
-| **Amazon Bedrock** | Claude 4.5 Haiku via cross-region inference profile for board-level narrative generation |
-| **AWS Lambda** | 4 functions (Python 3.12): orchestrator, classical, braket, get_job |
-| **Amazon DynamoDB** | Job persistence with PAY_PER_REQUEST billing, TTL, and GSI for O(1) quantum task lookup |
-| **Amazon EventBridge** | Braket task state change events → Lambda completion handler |
-| **API Gateway (v2)** | HTTP API with CORS, CloudWatch access logging, payload format 2.0 |
-| **Amazon S3** | Braket result storage + static website hosting for demo frontend |
-| **CloudWatch** | Log groups (7-day retention), multi-function dashboard, metric alarm |
-| **IAM** | Least-privilege inline policies, separate roles for standard vs quantum Lambdas |
-| **SNS** | Email notifications on orchestrator Lambda errors |
-
-### Infrastructure
-
-- **Terraform** - 10 modules, 38 resources, fully reproducible
-- **Python 3.12** - boto3, itertools, json, uuid, decimal handling
-- **JAQCD IR** - Braket's native JSON circuit format
-
-### Algorithms
-
-- **QAOA** - Quantum Approximate Optimization Algorithm (p=3 layers)
-- **Brute-force permutation search** - N! enumeration for classical path and quantum result verification
-- **Bitstring decoding** - Most-probable measurement → valid assignment with greedy fallback for noisy results
+| **AWS** | Braket (SV1), Bedrock (Claude Haiku 4.5), Lambda (Python 3.12, arm64, shared layer), API Gateway HTTP API, DynamoDB, EventBridge, S3, CloudFront, CloudWatch, SNS, IAM |
+| **IaC** | Terraform, 11 modules |
+| **Algorithms** | QAOA (QUBO/Ising, linear-ramp, p = 16), exact enumeration, greedy baseline |
+| **Dev** | pytest, numpy (simulator and benchmark only), GitHub Actions |
 
 ---
 
 ## About
 
-**Xavier Dupuis**  
-Cybersecurity Advisor - Banque Nationale du Canada  
-B.Eng. Cybersecurity Engineering - École Polytechnique de Montréal (Graduating 2026)  
+**Xavier Dupuis**
+Cybersecurity Advisor - Banque Nationale du Canada
+B.Eng. Cybersecurity Engineering - École Polytechnique de Montréal (Graduating 2026)
 
-**Certifications:**
-- AWS Certified Security Specialty
-- AWS Solutions Architect Associate
-- AWS Cloud Practitioner
-- CompTIA Security+
-- CompTIA Network+
-
-**What this project demonstrates:**
-
-This deployment goes beyond standard cloud implementations, showcasing the ability to independently engineer and debug bleeding-edge AWS technologies where standard tutorials do not yet exist.
-
-- Design and deploy production-grade hybrid quantum-classical infrastructure on AWS from scratch
-- Debug novel technical problems across many AWS services simultaneously under real deployment conditions
-- Apply quantum computing algorithms (QAOA) to a real-world cybersecurity optimization problem
-- Communicate complex technical systems in clear, executive-level language via AI-augmented reporting
-- Build fully reproducible, modular infrastructure as code across 10 Terraform modules
-
----
+**Certifications:** AWS Certified Security Specialty · AWS Solutions Architect Associate · AWS Cloud Practitioner · CompTIA Security+ · CompTIA Network+
 
 <p align="center">
   <b>Let's build something secure.</b><br>
