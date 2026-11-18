@@ -1,6 +1,6 @@
 # Explain This Project to Me (101)
 
-**A 5-minute read for managers, recruiters and anyone curious. No technical background needed.**
+**A 5-minute read for anyone curious. No technical background needed.**
 
 > Want the full story with all the screenshots? Read the [README](./README.md).
 > Want to rebuild it yourself? Read [SETUP.md](./SETUP.md).
